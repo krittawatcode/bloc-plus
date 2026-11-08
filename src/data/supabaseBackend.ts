@@ -128,7 +128,12 @@ export class SupabaseBackend implements Backend {
   }
 
   async saveSettings(s: GymSettings) {
-    ok(await this.sb.from('settings').update(settingsToRow(s)).eq('id', 1));
+    const rows = must(await this.sb.from('settings').update(settingsToRow(s)).eq('id', 1).select('id'));
+    // Row level security turns a refused update into "0 rows changed" instead of an error.
+    if (!rows.length)
+      throw new BackendError(
+        'Gym settings were not saved. This account may not be on the staff list, or the settings row is missing. Run the staff seed again and reload.',
+      );
   }
 
   async addWall(w: { id: string; name: string; tris: number }, scan: ArrayBuffer, ghost: Float32Array) {

@@ -19,6 +19,8 @@ export function GymTab() {
   const toast = useToast();
   const [draft, setDraft] = useState<GymSettings | null>(null);
   const timer = useRef<number>(0);
+  // The latest unsaved change, so it can be saved right away when the page is left.
+  const pending = useRef<(() => void) | null>(null);
   useStageScene(null, 'gym', 'Gym name and grading apply to every wall.');
   useStageCollapsed();
   const backend = useBackend();
@@ -26,14 +28,33 @@ export function GymTab() {
   useEffect(() => {
     if (!draft && d.settings) setDraft(structuredClone(d.settings));
   }, [d.settings, draft]);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  useEffect(() => {
+    const flush = () => {
+      window.clearTimeout(timer.current);
+      pending.current?.();
+    };
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onHide);
+      flush();
+    };
+  }, []);
 
   if (d.isLoading || !draft) return <Loading />;
 
   const update = (next: GymSettings, now = false) => {
     setDraft(next);
     window.clearTimeout(timer.current);
-    const go = () => saveSettings.mutate(next, { onError: (e) => toast(friendly(e)) });
+    const go = () => {
+      pending.current = null;
+      saveSettings.mutate(next, { onError: (e) => toast(friendly(e)) });
+    };
+    pending.current = go;
     if (now) go();
     else timer.current = window.setTimeout(go, 600);
   };
@@ -62,7 +83,20 @@ export function GymTab() {
           maxLength={40}
           value={draft.gymName}
           onChange={(e) => update({ ...draft, gymName: e.target.value })}
+          onBlur={() => {
+            window.clearTimeout(timer.current);
+            pending.current?.();
+          }}
         />
+        <p className={`${ui.muted} ${ui.smallText}`} aria-live="polite">
+          {pending.current || saveSettings.isPending
+            ? 'Saving…'
+            : saveSettings.isError
+              ? 'Not saved. Check the message and try again.'
+              : saveSettings.isSuccess
+                ? 'Saved'
+                : ''}
+        </p>
       </div>
       <div className={ui.field}>
         <span className={ui.label}>How your gym grades routes</span>
