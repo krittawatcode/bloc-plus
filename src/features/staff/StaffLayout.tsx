@@ -34,7 +34,7 @@ export function StaffLayout() {
     device.set({ staffWall: id });
     setChosen(id);
   };
-  const editing = /\/staff\/routes\/.+/.test(pathname);
+  const editing = /\/staff\/routes\/(?!start\/).+/.test(pathname);
   const reported = (comments.data ?? []).filter((c) => c.reported && !c.hidden).length;
 
   const signedOut = !ready || !session?.isStaff;

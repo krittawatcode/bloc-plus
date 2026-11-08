@@ -11,6 +11,7 @@ import { SpotPage } from '@/features/climber/SpotPage';
 import { RoutePage } from '@/features/climber/RoutePage';
 import { StaffLayout } from '@/features/staff/StaffLayout';
 import { RoutesTab } from '@/features/staff/RoutesTab';
+import { StartTab } from '@/features/staff/StartTab';
 import { RouteEditor } from '@/features/staff/RouteEditor';
 import { WallsTab } from '@/features/staff/WallsTab';
 import { QrTab } from '@/features/staff/QrTab';
@@ -43,6 +44,7 @@ export function App() {
                   <Route path="staff" element={<StaffLayout />}>
                     <Route index element={<Navigate to="routes" replace />} />
                     <Route path="routes" element={<RoutesTab />} />
+                    <Route path="routes/start/:baseId" element={<StartTab />} />
                     <Route path="routes/new" element={<RouteEditor />} />
                     <Route path="routes/new/:baseId/:type" element={<RouteEditor />} />
                     <Route path="routes/:routeId" element={<RouteEditor />} />

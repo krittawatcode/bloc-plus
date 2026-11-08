@@ -156,6 +156,9 @@ export function RouteEditor() {
         : 'Edit normal route'
       : `${isNew ? 'New' : 'Edit'} ${draft.type === 'elim' ? 'elimination' : 'route'} from ${base?.name ?? 'base route'}`;
   const set = (patch: Partial<Route>) => setDraft({ ...draft, ...patch });
+  // Back to the start this route belongs to (a brand-new normal route goes back to the list).
+  const startId = draft.type === 'base' ? (isNew ? null : draft.id) : draft.baseId;
+  const backTo = startId ? `/staff/routes/start/${startId}` : '/staff/routes';
 
   const submit = () => {
     const problem = validateRoute(draft);
@@ -170,7 +173,8 @@ export function RouteEditor() {
     save.mutate([route], {
       onSuccess: () => {
         toast(isNew ? 'Route saved. It is live for climbers.' : 'Route updated.');
-        navigate('/staff/routes', { state: { preview: route.id } });
+        const id = route.type === 'base' ? route.id : (route.baseId ?? route.id);
+        navigate(`/staff/routes/start/${id}`, route.type === 'base' ? {} : { state: { preview: route.id } });
       },
       onError: (e) => toast(friendly(e)),
     });
@@ -216,8 +220,8 @@ export function RouteEditor() {
         </div>
       </StageDock>
 
-      <Link to="/staff/routes" className={ui.back}>
-        Back to routes
+      <Link to={backTo} className={ui.back}>
+        Back
       </Link>
       <h3>{title}</h3>
       <p className={ui.muted}>
@@ -360,7 +364,7 @@ export function RouteEditor() {
         >
           {save.isPending ? 'Saving…' : 'Save route'}
         </button>
-        <Link to="/staff/routes" className={ui.btn}>
+        <Link to={backTo} className={ui.btn}>
           Cancel
         </Link>
       </div>
@@ -403,7 +407,7 @@ function DeleteRoute({ route }: { route: Route }) {
               {
                 onSuccess: () => {
                   toast(`${route.name || 'Route'} deleted.`);
-                  navigate('/staff/routes');
+                  navigate(route.baseId ? `/staff/routes/start/${route.baseId}` : '/staff/routes');
                 },
                 onError: (e) => toast(friendly(e)),
               },

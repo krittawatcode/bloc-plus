@@ -28,11 +28,6 @@
   line-height: 18px;
   text-align: center;
 }
-.base {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .extras {
   display: flex;
   flex-direction: column;
@@ -65,13 +60,6 @@
 }
 .archived .extraName {
   opacity: 0.55;
-}
-.addRow {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-left: 22px;
-  align-items: center;
 }
 .drop {
   display: flex;

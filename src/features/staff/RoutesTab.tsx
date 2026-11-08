@@ -1,47 +1,56 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { GradeBadge, Loading, TypePill } from '@/components/ui';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
-import { friendly } from '@/data/backend';
-import { useCoreData, useSaveRoutes } from '@/data/queries';
+import { useCoreData } from '@/data/queries';
+import { parentOf, startsOf, withMarkers } from '@/domain/routes';
 import { PRACTICE_WALL_ID } from '@/domain/types';
+import { holdsOfWall } from '@/viewer/practiceWall';
 import { StageTools } from '@/viewer/stage';
-import { useStageScene, useViewer } from '@/viewer/stageContext';
-import { useGhostPref } from '@/features/climber/useClimberData';
+import { useStageScene, useViewer, useViewerEvents } from '@/viewer/stageContext';
+import { BaseRow } from '@/features/climber/shared';
 import { useStaffWall } from './staffWall';
 import { WallSelect } from './WallSelect';
 import { wallLabel } from './staffWall';
-import s from './Staff.module.css';
 
+/** Staff home for routes: every normal route on the wall, like the climber home. Open one to manage it. */
 export function RoutesTab() {
   const { wallId } = useStaffWall();
   const d = useCoreData();
-  const save = useSaveRoutes();
   const toast = useToast();
   const viewer = useViewer();
-  const location = useLocation();
-  const [preview, setPreview] = useState<string | null>(
-    (location.state as { preview?: string } | null)?.preview ?? null,
-  );
-  const previewRoute = d.routes.find((r) => r.id === preview && r.wallId === wallId);
+  const navigate = useNavigate();
   const hasHolds = wallId === PRACTICE_WALL_ID || d.holds.some((h) => h.wallId === wallId);
-  const [ghost, setGhost] = useGhostPref();
+  const bases = d.routes.filter((r) => r.type === 'base' && r.wallId === wallId);
+  const starts = startsOf(bases);
+  const wallHolds = holdsOfWall(wallId, d.holds);
 
-  // A previewed route shows only its holds (like the climber view); otherwise the whole wall.
+  // Only the start holds, like the climber home. With no routes yet, the whole wall.
   useStageScene(
     d.isLoading || !hasHolds
       ? null
-      : previewRoute
-        ? { kind: 'route', wallId, holds: previewRoute.holds, ghost }
-        : { kind: 'wall', wallId, markers: {} },
-    `routes:${wallId}:${previewRoute?.id}:${previewRoute ? ghost : ''}:${d.holds.length}`,
+      : {
+          kind: 'wall',
+          wallId,
+          markers: starts,
+          holdIds:
+            wallId === PRACTICE_WALL_ID || !bases.length
+              ? undefined
+              : Object.keys(withMarkers(wallHolds, starts)),
+        },
+    `routes:${wallId}:${d.holds.length}:${d.routes.length}`,
     d.isLoading ? 'Loading…' : 'Tag some holds on this wall first.',
   );
+  useViewerEvents({
+    holdTap: (id) => {
+      const parent = parentOf(wallHolds, id);
+      const base = bases.find((b) => b.holds[parent] === 'start');
+      if (base) navigate(`/staff/routes/start/${base.id}`);
+      else if (bases.length) toast('That hold is not a start. Tap a green ring.');
+    },
+  });
 
   if (d.isLoading) return <Loading />;
-  const bases = d.routes.filter((r) => r.type === 'base' && r.wallId === wallId);
-  const toggle = (id: string) => setPreview((p) => (p === id ? null : id));
 
   return (
     <>
@@ -49,11 +58,6 @@ export function RoutesTab() {
         <button type="button" onClick={() => viewer?.resetView()}>
           Reset view
         </button>
-        {previewRoute && (
-          <button type="button" aria-pressed={ghost} onClick={() => setGhost(!ghost)}>
-            Outline {ghost ? 'on' : 'off'}
-          </button>
-        )}
       </StageTools>
       <WallSelect />
       {!hasHolds ? (
@@ -68,79 +72,29 @@ export function RoutesTab() {
       ) : (
         <>
           <p className={`${ui.muted} ${ui.smallText}`}>
-            {wallLabel(d.walls, wallId)}. Tap a route to see it on the wall.
+            {wallLabel(d.walls, wallId)}. Pick a route to add eliminations and new routes.
           </p>
           <div className={ui.actions}>
             <Link to="/staff/routes/new" className={`${ui.btn} ${ui.primary}`}>
               New normal route
             </Link>
           </div>
-          {bases.length === 0 && <p className={ui.empty}>No routes on this wall yet.</p>}
-          {bases.map((b) => (
-            <div key={b.id} className={s.base}>
-              <button
-                type="button"
-                className={preview === b.id ? ui.rowSelected : ui.row}
-                onClick={() => toggle(b.id)}
-              >
-                <span className={ui.tape} style={{ background: b.color ?? '#999' }} />
-                <span className={ui.grow}>
-                  <strong>{b.name}</strong> <GradeBadge grading={d.settings?.grading} id={b.grade} />
-                  <br />
-                  <span className={`${ui.muted} ${ui.smallText}`}>{b.section}</span>
-                </span>
-              </button>
-              <div className={s.extras}>
-                {d.routes
-                  .filter((x) => x.baseId === b.id)
-                  .map((x) => (
-                    <div key={x.id} className={`${s.extra} ${x.archived ? s.archived : ''}`}>
-                      <button
-                        type="button"
-                        className={s.extraName}
-                        aria-pressed={preview === x.id}
-                        onClick={() => toggle(x.id)}
-                      >
-                        <strong>{x.name}</strong>
-                        <TypePill type={x.type} />
-                        {x.archived && <span className={`${ui.muted} ${ui.smallText}`}>Archived</span>}
-                      </button>
-                      <Link to={`/staff/routes/${x.id}`} className={ui.link}>
-                        Edit
-                      </Link>
-                      <button
-                        type="button"
-                        className={ui.link}
-                        disabled={save.isPending}
-                        onClick={() =>
-                          save.mutate([{ ...x, archived: !x.archived }], {
-                            onSuccess: () =>
-                              toast(x.archived ? 'Restored.' : 'Archived. Climbers no longer see it.'),
-                            onError: (e) => toast(friendly(e)),
-                          })
-                        }
-                      >
-                        {x.archived ? 'Restore' : 'Archive'}
-                      </button>
-                    </div>
-                  ))}
-              </div>
-              <div className={s.addRow}>
-                <Link to={`/staff/routes/new/${b.id}/elim`} className={`${ui.btn} ${ui.small}`}>
-                  + Elimination
-                </Link>
-                <Link to={`/staff/routes/new/${b.id}/new`} className={`${ui.btn} ${ui.small}`}>
-                  + New route
-                </Link>
-                <Link to={`/staff/routes/${b.id}`} className={ui.link}>
-                  Edit normal route
-                </Link>
-                <Link to={`/r/${b.id}`} className={ui.link}>
-                  Climber view
-                </Link>
-              </div>
-            </div>
-          ))}
+          {bases.length ? (
+            <ul className={ui.list}>
+              {bases.map((b) => (
+                <li key={b.id}>
+                  <BaseRow
+                    route={b}
+                    grading={d.settings?.grading}
+                    extras={d.routes.filter((x) => x.baseId === b.id && !x.archived).length}
+                    to={`/staff/routes/start/${b.id}`}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={ui.empty}>No routes on this wall yet.</p>
+          )}
         </>
       )}
     </>

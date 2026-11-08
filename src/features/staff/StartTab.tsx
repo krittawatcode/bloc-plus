@@ -1,0 +1,121 @@
+import { useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { GradeBadge, Loading, TypePill } from '@/components/ui';
+import { ui } from '@/components/uiStyles';
+import { useToast } from '@/components/toastContext';
+import { friendly } from '@/data/backend';
+import { useCoreData, useSaveRoutes } from '@/data/queries';
+import { RouteTools } from '@/features/climber/shared';
+import { useGhostPref } from '@/features/climber/useClimberData';
+import { useStageScene } from '@/viewer/stageContext';
+import s from './Staff.module.css';
+
+/** One normal route for staff: only its holds in 3D, plus its extras to preview, add and manage. */
+export function StartTab() {
+  const { baseId } = useParams();
+  const d = useCoreData();
+  const save = useSaveRoutes();
+  const toast = useToast();
+  const location = useLocation();
+  const [ghost, setGhost] = useGhostPref();
+  const [preview, setPreview] = useState<string | null>(
+    (location.state as { preview?: string } | null)?.preview ?? null,
+  );
+  const base = d.routes.find((r) => r.id === baseId && r.type === 'base');
+  const extras = d.routes.filter((r) => r.baseId === base?.id);
+  // The wall shows the normal route, or the extra being previewed.
+  const shown = extras.find((x) => x.id === preview) ?? base;
+
+  useStageScene(
+    shown ? { kind: 'route', wallId: shown.wallId, holds: shown.holds, ghost } : null,
+    `staff-start:${shown?.id}:${ghost}:${d.holds.length}`,
+    d.isLoading ? 'Loading…' : 'This route no longer exists.',
+  );
+
+  if (d.isLoading) return <Loading />;
+  if (!base)
+    return (
+      <>
+        <p className={ui.empty}>This route no longer exists.</p>
+        <Link to="/staff/routes" className={ui.back}>
+          All routes
+        </Link>
+      </>
+    );
+
+  const toggle = (id: string) => setPreview((p) => (p === id ? null : id));
+
+  return (
+    <>
+      <RouteTools ghost={ghost} onGhost={setGhost} />
+      <Link to="/staff/routes" className={ui.back}>
+        All routes
+      </Link>
+      <div className={ui.head}>
+        <p className={ui.eyebrow}>{base.section || 'Normal route'}</p>
+        <h2>
+          <span className={ui.tapeInline} style={{ background: base.color ?? '#999' }} />
+          {base.name} <GradeBadge grading={d.settings?.grading} id={base.grade} />
+        </h2>
+        <p className={ui.muted}>
+          {shown === base
+            ? `The wall shows the normal ${base.name} route. Tap an extra to see only its holds.`
+            : `The wall shows ${shown?.name}. Tap it again to go back to ${base.name}.`}
+        </p>
+      </div>
+      <div className={ui.actions}>
+        <Link to={`/staff/routes/new/${base.id}/elim`} className={`${ui.btn} ${ui.primary}`}>
+          + Elimination
+        </Link>
+        <Link to={`/staff/routes/new/${base.id}/new`} className={`${ui.btn} ${ui.primary}`}>
+          + New route
+        </Link>
+      </div>
+      <h3>Extra routes from this start</h3>
+      {extras.length ? (
+        <div className={s.extras}>
+          {extras.map((x) => (
+            <div key={x.id} className={`${s.extra} ${x.archived ? s.archived : ''}`}>
+              <button
+                type="button"
+                className={s.extraName}
+                aria-pressed={preview === x.id}
+                onClick={() => toggle(x.id)}
+              >
+                <strong>{x.name}</strong>
+                <TypePill type={x.type} />
+                {x.archived && <span className={`${ui.muted} ${ui.smallText}`}>Archived</span>}
+              </button>
+              <Link to={`/staff/routes/${x.id}`} className={ui.link}>
+                Edit
+              </Link>
+              <button
+                type="button"
+                className={ui.link}
+                disabled={save.isPending}
+                onClick={() =>
+                  save.mutate([{ ...x, archived: !x.archived }], {
+                    onSuccess: () => toast(x.archived ? 'Restored.' : 'Archived. Climbers no longer see it.'),
+                    onError: (e) => toast(friendly(e)),
+                  })
+                }
+              >
+                {x.archived ? 'Restore' : 'Archive'}
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className={ui.empty}>No extras yet. Add an elimination or a new route.</p>
+      )}
+      <div className={ui.actions}>
+        <Link to={`/staff/routes/${base.id}`} className={ui.link}>
+          Edit normal route
+        </Link>
+        <Link to={`/r/${base.id}`} className={ui.link}>
+          Climber view
+        </Link>
+      </div>
+    </>
+  );
+}
