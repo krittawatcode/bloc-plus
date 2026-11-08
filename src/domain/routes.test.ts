@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cleanTag,
   feetNote,
   parentOf,
   startingHolds,
   STRICT_FEET,
+  tagOptions,
   tally,
   toggleHold,
   validateRoute,
@@ -97,5 +99,20 @@ describe('feetNote', () => {
     expect(feetNote({ holds: { a: 'start' }, rules: [] })).toBe('Feet: any hold');
     expect(feetNote({ holds: { a: 'foot' }, rules: [] })).toMatch(/^Feet: any hold/);
     expect(feetNote({ holds: {}, rules: [STRICT_FEET] })).toBe('Feet: route holds only');
+  });
+});
+
+describe('tags', () => {
+  it('cleans typed tags', () => {
+    expect(cleanTag('  Sit   start ')).toBe('Sit start');
+    expect(cleanTag('x'.repeat(40))).toHaveLength(30);
+  });
+  it('offers gym tags, Marked feet only, and tags already on the route, once each', () => {
+    expect(tagOptions(['No dyno', 'Crimpy'], ['crimpy', 'Old tag'])).toEqual([
+      'No dyno',
+      'Crimpy',
+      STRICT_FEET,
+      'Old tag',
+    ]);
   });
 });

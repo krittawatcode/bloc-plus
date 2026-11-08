@@ -16,7 +16,8 @@ export const TYPE_NAME: Record<RouteType, string> = {
   new: 'New route',
 };
 
-export const RULES = [
+/** Tags a new gym starts with. Staff add or remove tags in Gym settings (`GymSettings.tags`). */
+export const DEFAULT_TAGS = [
   'Feet follow hands',
   'No dyno',
   'Volume is on',
@@ -26,8 +27,22 @@ export const RULES = [
   'Marked feet only',
 ];
 
-/** The competition-style rule: feet may only go on holds of the route. */
+/** The competition-style tag: feet may only go on holds of the route. Always offered. */
 export const STRICT_FEET = 'Marked feet only';
+
+/** Clean up a tag a person typed: single spaces, at most 30 characters. */
+export const cleanTag = (s: string) => s.replace(/\s+/g, ' ').trim().slice(0, 30);
+
+/**
+ * Tags to offer when setting a route: the gym's list, plus "Marked feet only", plus any tag the route
+ * already has (so a tag removed from the gym list can still be taken off the route).
+ */
+export function tagOptions(gymTags: string[], routeTags: string[] = []): string[] {
+  const out: string[] = [];
+  for (const t of [...gymTags, STRICT_FEET, ...routeTags])
+    if (!out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
+  return out;
+}
 
 /** What climbers may use for feet. Feet are free unless the route says otherwise. */
 export function feetNote(route: Pick<Route, 'holds' | 'rules'>): string {

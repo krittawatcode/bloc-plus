@@ -31,6 +31,8 @@ export interface GymSettings {
   grading: Grading;
   /** Base URL printed in QR codes. Empty means "this site's address". */
   qrLink: string;
+  /** Tags staff can put on routes, like "No dyno". */
+  tags: string[];
 }
 
 export interface Wall {
@@ -81,6 +83,7 @@ export interface Route {
   color: string | null;
   section: string;
   description: string;
+  /** Tags on the route (stored in the `rules` column). */
   rules: string[];
   holds: HoldMap;
   setter: string;

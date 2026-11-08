@@ -54,7 +54,9 @@ export function ExtraRowBody({
         <span className={ui.meta}>
           <TypePill type={route.type} />
           <GradeBadge grading={grading} id={route.grade} />
-          {route.rules[0] && <span className={`${ui.muted} ${ui.smallText}`}>{route.rules[0]}</span>}
+          {route.rules.length > 0 && (
+            <span className={`${ui.muted} ${ui.smallText}`}>{route.rules.join(' · ')}</span>
+          )}
           {route.archived && <span className={`${ui.muted} ${ui.smallText}`}>Archived</span>}
         </span>
       </span>

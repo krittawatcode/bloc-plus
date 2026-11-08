@@ -1,4 +1,5 @@
 import { defaultGrading } from '@/domain/grading';
+import { DEFAULT_TAGS } from '@/domain/routes';
 import { PRACTICE_ROUTES } from '@/domain/practice';
 import type { Comment, GymSettings, Hold, Route, Wall } from '@/domain/types';
 import { uid } from '@/lib/format';
@@ -25,7 +26,7 @@ const SESSION_KEY = 'blocplus-demo-session';
 function seed(): Tables {
   return {
     version: 1,
-    settings: { gymName: 'Your gym', grading: defaultGrading(), qrLink: '' },
+    settings: { gymName: 'Your gym', grading: defaultGrading(), qrLink: '', tags: [...DEFAULT_TAGS] },
     walls: [],
     holds: [],
     routes: PRACTICE_ROUTES.map((r) => ({ ...r })),
@@ -126,7 +127,8 @@ export class DemoBackend implements Backend {
   }
 
   async getSettings() {
-    return structuredClone(this.t.settings);
+    // Demo data saved before tags existed has none yet.
+    return structuredClone({ ...this.t.settings, tags: this.t.settings.tags ?? [...DEFAULT_TAGS] });
   }
   async listWalls() {
     return structuredClone(this.t.walls);

@@ -1,4 +1,5 @@
 import { defaultGrading } from '@/domain/grading';
+import { DEFAULT_TAGS } from '@/domain/routes';
 import type {
   Comment,
   Grading,
@@ -102,6 +103,7 @@ export function settingsFromRow(r: T['settings']['Row'] | null): GymSettings {
     gymName: r?.gym_name ?? 'My gym',
     grading: g && Array.isArray(g.levels) && g.levels.length ? g : defaultGrading(),
     qrLink: r?.qr_link ?? '',
+    tags: Array.isArray(r?.tags) ? (r.tags as string[]) : [...DEFAULT_TAGS],
   };
 }
 
@@ -110,5 +112,6 @@ export const settingsToRow = (s: GymSettings): T['settings']['Insert'] => ({
   gym_name: s.gymName,
   grading: s.grading as unknown as Json,
   qr_link: s.qrLink,
+  tags: s.tags,
   updated_at: new Date().toISOString(),
 });

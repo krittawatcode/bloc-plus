@@ -13,9 +13,9 @@ export type Database = {
         Relationships: [];
       };
       settings: {
-        Row: { id: number; gym_name: string; grading: Json; qr_link: string; updated_at: string };
-        Insert: { id?: number; gym_name?: string; grading: Json; qr_link?: string; updated_at?: string };
-        Update: { id?: number; gym_name?: string; grading?: Json; qr_link?: string; updated_at?: string };
+        Row: { id: number; gym_name: string; grading: Json; qr_link: string; tags: Json; updated_at: string };
+        Insert: { id?: number; gym_name?: string; grading: Json; qr_link?: string; tags?: Json; updated_at?: string };
+        Update: { id?: number; gym_name?: string; grading?: Json; qr_link?: string; tags?: Json; updated_at?: string };
         Relationships: [];
       };
       walls: {

@@ -10,6 +10,7 @@ import { PRESETS, addLevel, remapGrades } from '@/domain/grading';
 import type { GradeLevel, GradingSystem, GymSettings } from '@/domain/types';
 import { useStageCollapsed, useStageScene } from '@/viewer/stageContext';
 import s from './Staff.module.css';
+import { GymTags } from './TagPicker';
 
 /** Gym name and grading system. Changes save automatically. */
 export function GymTab() {
@@ -21,7 +22,7 @@ export function GymTab() {
   const timer = useRef<number>(0);
   // The latest unsaved change, so it can be saved right away when the page is left.
   const pending = useRef<(() => void) | null>(null);
-  useStageScene(null, 'gym', 'Gym name and grading apply to every wall.');
+  useStageScene(null, 'gym', 'Gym name, grading and tags apply to every wall.');
   useStageCollapsed();
   const backend = useBackend();
 
@@ -227,6 +228,7 @@ export function GymTab() {
           </div>
         )}
       </div>
+      <GymTags tags={draft.tags} onChange={(tags) => update({ ...draft, tags }, true)} />
       <p className={ui.note}>
         Changes save automatically. Climbers see grades exactly as named here, and renaming a level updates
         every route that uses it.

@@ -8,21 +8,14 @@ import { friendly } from '@/data/backend';
 import { useSession } from '@/data/context';
 import { useComments, useCoreData, useDeleteRoutes, useSaveRoutes } from '@/data/queries';
 import { defaultGradeId, gradeLabel, PRESETS } from '@/domain/grading';
-import {
-  RULES,
-  TAPE_COLORS,
-  parentOf,
-  startingHolds,
-  tally,
-  toggleHold,
-  validateRoute,
-} from '@/domain/routes';
+import { TAPE_COLORS, parentOf, startingHolds, tally, toggleHold, validateRoute } from '@/domain/routes';
 import type { Role, Route, RouteType } from '@/domain/types';
 import { plural, uid } from '@/lib/format';
 import { holdsOfWall } from '@/viewer/practiceWall';
 import { StageDock, StageTools } from '@/viewer/stage';
 import { useStageScene, useViewer, useViewerEvents } from '@/viewer/stageContext';
 import { useStaffWall } from './staffWall';
+import { TagPicker } from './TagPicker';
 import s from './Staff.module.css';
 
 const SHORT_ROLE: Record<Exclude<Role, 'off'>, string> = {
@@ -231,7 +224,7 @@ export function RouteEditor() {
       <p className={ui.muted}>
         {draft.type === 'elim'
           ? `Tap a ${base?.name} hold on the wall to cross it out. Tap it again to bring it back.`
-          : 'Pick Start, Hand or Top on the wall view, then tap holds. Tap a hold again to remove it. Tapping a marker hold selects the big hold under it too. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" rule.'}
+          : 'Pick Start, Hand or Top on the wall view, then tap holds. Tap a hold again to remove it. Tapping a marker hold selects the big hold under it too. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" tag.'}
       </p>
 
       <div className={ui.field}>
@@ -322,28 +315,7 @@ export function RouteEditor() {
         </>
       ) : (
         <>
-          <div className={ui.field}>
-            <span className={ui.label}>Rules</span>
-            <div className={ui.chips}>
-              {RULES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={ui.chip}
-                  aria-pressed={draft.rules.includes(r)}
-                  onClick={() =>
-                    set({
-                      rules: draft.rules.includes(r)
-                        ? draft.rules.filter((x) => x !== r)
-                        : [...draft.rules, r],
-                    })
-                  }
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
+          <TagPicker value={draft.rules} onChange={(rules) => set({ rules })} />
           <div className={ui.field}>
             <label className={ui.label} htmlFor="esetter">
               Set by
