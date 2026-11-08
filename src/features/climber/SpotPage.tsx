@@ -1,7 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { GradeBadge, Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
-import { RouteTag } from '@/components/RouteTag';
 import { useStageScene } from '@/viewer/stageContext';
 import rs from './RoutePage.module.css';
 import { CommentItem } from './CommentItem';
@@ -75,19 +74,23 @@ export function SpotPage() {
       {latest.length > 0 && (
         <section className={ui.field} aria-label="Latest comments from this start">
           <h3>Latest from this start</h3>
-          {groupByRoute(latest).map(([routeId, list]) => (
-            <div key={routeId} className={rs.commentGroup}>
-              <RouteTag
-                route={extras.find((x) => x.id === routeId)}
-                base={base}
-                grading={d.settings?.grading}
-                to={`/x/${routeId}`}
-              />
-              {list.map((c) => (
-                <CommentItem key={c.id} comment={c} />
-              ))}
-            </div>
-          ))}
+          {groupByRoute(latest).map(([routeId, list]) => {
+            const r = extras.find((x) => x.id === routeId);
+            return (
+              <div key={routeId} className={rs.commentGroup}>
+                {/* The routes are listed just above, so only a short pointer is needed, and none
+                    at all when this start has a single extra. */}
+                {extras.length > 1 && r && (
+                  <Link to={`/x/${routeId}`} className={rs.groupLink}>
+                    {r.name} ›
+                  </Link>
+                )}
+                {list.map((c) => (
+                  <CommentItem key={c.id} comment={c} />
+                ))}
+              </div>
+            );
+          })}
           {total > latest.length && (
             <p className={`${ui.muted} ${ui.smallText}`}>
               Open a route to see all {total} comments on it and the others from this start.

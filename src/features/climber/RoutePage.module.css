@@ -83,7 +83,10 @@
 .commentGroup {
   margin-top: 14px;
 }
-.commentGroup > a,
-.commentGroup > button {
+.groupLink {
+  display: inline-block;
   margin-bottom: 4px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
 }
