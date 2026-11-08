@@ -245,16 +245,21 @@ export function useDeleteComment() {
   );
 }
 
-export function useAddSend() {
+/** Tick or untick "I sent it" for this phone. */
+export function useToggleSend() {
   const b = useBackend();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (routeId: string) => b.addSend(routeId, device.get().device),
-    onSuccess: (_d, routeId) => {
-      device.set({ sent: { ...device.get().sent, [routeId]: true } });
+    mutationFn: ({ routeId, sent }: { routeId: string; sent: boolean }) =>
+      sent ? b.addSend(routeId, device.get().device) : b.removeSend(routeId, device.get().device),
+    onSuccess: (_d, { routeId, sent }) => {
+      const mine = { ...device.get().sent };
+      if (sent) mine[routeId] = true;
+      else delete mine[routeId];
+      device.set({ sent: mine });
       qc.setQueryData<Record<string, number>>(keys.sends, (old = {}) => ({
         ...old,
-        [routeId]: (old[routeId] ?? 0) + 1,
+        [routeId]: Math.max(0, (old[routeId] ?? 0) + (sent ? 1 : -1)),
       }));
     },
   });

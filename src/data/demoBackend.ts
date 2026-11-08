@@ -339,6 +339,10 @@ export class DemoBackend implements Backend {
       this.t.sends.push({ routeId, deviceId });
     this.save();
   }
+  async removeSend(routeId: string, deviceId: string) {
+    this.t.sends = this.t.sends.filter((s) => !(s.routeId === routeId && s.deviceId === deviceId));
+    this.save();
+  }
 
   /** Start the demo over. */
   static reset() {

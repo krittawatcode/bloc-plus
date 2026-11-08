@@ -205,6 +205,7 @@ export type Database = {
     Functions: {
       is_staff: { Args: Record<PropertyKey, never>; Returns: boolean };
       report_comment: { Args: { cid: string }; Returns: undefined };
+      remove_send: { Args: { rid: string; did: string }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

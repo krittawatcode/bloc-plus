@@ -4,7 +4,7 @@ import { GradeBadge, Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
-import { useAddSend } from '@/data/queries';
+import { useToggleSend } from '@/data/queries';
 import { feetNote, markersOf, STRICT_FEET, TYPE_NAME } from '@/domain/routes';
 import { device } from '@/lib/device';
 import { plural } from '@/lib/format';
@@ -76,35 +76,40 @@ export function RoutePage() {
             </span>
           ))}
       </div>
-      <SendButton routeId={route.id} count={d.counts[route.id] ?? 0} />
+      <SendToggle routeId={route.id} count={d.counts[route.id] ?? 0} />
       <Comments routeId={route.id} comments={d.commentsOf(route.id)} />
     </>
   );
 }
 
-function SendButton({ routeId, count }: { routeId: string; count: number }) {
-  const add = useAddSend();
+/** "I sent it" tick box. Untick to take the send back (one per phone). */
+function SendToggle({ routeId, count }: { routeId: string; count: number }) {
+  const toggle = useToggleSend();
   const toast = useToast();
   const [mine, setMine] = useState(!!device.get().sent[routeId]);
   return (
     <div className={s.sendbar}>
-      <button
-        type="button"
-        className={s.send}
-        aria-pressed={mine}
-        disabled={mine || add.isPending}
-        onClick={() =>
-          add.mutate(routeId, {
-            onSuccess: () => {
-              setMine(true);
-              toast('Nice send!');
-            },
-            onError: (e) => toast(friendly(e)),
-          })
-        }
-      >
-        {mine ? 'You sent it' : 'I sent it'}
-      </button>
+      <label className={s.send}>
+        <input
+          type="checkbox"
+          checked={mine}
+          disabled={toggle.isPending}
+          onChange={(e) => {
+            const sent = e.target.checked;
+            toggle.mutate(
+              { routeId, sent },
+              {
+                onSuccess: () => {
+                  setMine(sent);
+                  if (sent) toast('Nice send!');
+                },
+                onError: (err) => toast(friendly(err)),
+              },
+            );
+          }}
+        />
+        <span className={s.box} aria-hidden="true" />I sent it
+      </label>
       <span className={`${ui.muted} ${ui.smallText}`}>{plural(count, 'climber')} sent this</span>
     </div>
   );

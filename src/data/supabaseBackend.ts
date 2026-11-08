@@ -301,4 +301,8 @@ export class SupabaseBackend implements Backend {
     const { error } = await this.sb.from('sends').insert({ route_id: routeId, device_id: deviceId });
     if (error && error.code !== '23505') throw new Error(error.message);
   }
+
+  async removeSend(routeId: string, deviceId: string) {
+    ok(await this.sb.rpc('remove_send', { rid: routeId, did: deviceId }));
+  }
 }

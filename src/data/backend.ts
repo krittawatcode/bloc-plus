@@ -77,6 +77,8 @@ export interface Backend {
   reportComment(id: string): Promise<void>;
   /** Log a send. Sending the same route twice from one device is ignored. */
   addSend(routeId: string, deviceId: string): Promise<void>;
+  /** Undo this device's send on a route. */
+  removeSend(routeId: string, deviceId: string): Promise<void>;
 }
 
 export class BackendError extends Error {}
