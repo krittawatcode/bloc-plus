@@ -104,6 +104,13 @@ export class SupabaseBackend implements Backend {
     return Object.fromEntries(rows.filter((r) => r.route_id).map((r) => [r.route_id!, r.n ?? 0]));
   }
 
+  async ratingStats() {
+    const rows = must(await this.sb.from('rating_stats').select('*'));
+    return Object.fromEntries(
+      rows.filter((r) => r.route_id).map((r) => [r.route_id!, { avg: r.avg ?? 0, n: r.n ?? 0 }]),
+    );
+  }
+
   photoUrl(path: string) {
     return this.sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
   }
@@ -304,5 +311,9 @@ export class SupabaseBackend implements Backend {
 
   async removeSend(routeId: string, deviceId: string) {
     ok(await this.sb.rpc('remove_send', { rid: routeId, did: deviceId }));
+  }
+
+  async rateRoute(routeId: string, deviceId: string, stars: number | null) {
+    ok(await this.sb.rpc('rate_route', { rid: routeId, did: deviceId, stars }));
   }
 }

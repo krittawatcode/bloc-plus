@@ -195,10 +195,22 @@ export type Database = {
           { foreignKeyName: 'sends_route_id_fkey'; columns: ['route_id']; isOneToOne: false; referencedRelation: 'routes'; referencedColumns: ['id'] },
         ];
       };
+      ratings: {
+        Row: { route_id: string; device_id: string; stars: number; updated_at: string };
+        Insert: { route_id: string; device_id: string; stars: number; updated_at?: string };
+        Update: { route_id?: string; device_id?: string; stars?: number; updated_at?: string };
+        Relationships: [
+          { foreignKeyName: 'ratings_route_id_fkey'; columns: ['route_id']; isOneToOne: false; referencedRelation: 'routes'; referencedColumns: ['id'] },
+        ];
+      };
     };
     Views: {
       send_counts: {
         Row: { route_id: string | null; n: number | null };
+        Relationships: [];
+      };
+      rating_stats: {
+        Row: { route_id: string | null; n: number | null; avg: number | null };
         Relationships: [];
       };
     };
@@ -206,6 +218,7 @@ export type Database = {
       is_staff: { Args: Record<PropertyKey, never>; Returns: boolean };
       report_comment: { Args: { cid: string }; Returns: undefined };
       remove_send: { Args: { rid: string; did: string }; Returns: undefined };
+      rate_route: { Args: { rid: string; did: string; stars: number | null }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

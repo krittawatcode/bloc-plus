@@ -4,7 +4,7 @@ import { GradeBadge, Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
-import { useComments, useCoreData, useSaveRoutes, useSendCounts } from '@/data/queries';
+import { useComments, useCoreData, useRatings, useSaveRoutes, useSendCounts } from '@/data/queries';
 import { ExtraRowBody, RouteTools } from '@/features/climber/shared';
 import { useGhostPref } from '@/features/climber/useClimberData';
 import { useStageScene } from '@/viewer/stageContext';
@@ -16,6 +16,7 @@ export function StartTab() {
   const d = useCoreData();
   const save = useSaveRoutes();
   const counts = useSendCounts();
+  const ratings = useRatings();
   const comments = useComments();
   const toast = useToast();
   const location = useLocation();
@@ -80,6 +81,7 @@ export function StartTab() {
                   grading={d.settings?.grading}
                   sends={counts.data?.[x.id] ?? 0}
                   comments={(comments.data ?? []).filter((c) => c.routeId === x.id).length}
+                  rating={ratings.data?.[x.id]}
                 />
               </Link>
               <div className={s.extraActions}>

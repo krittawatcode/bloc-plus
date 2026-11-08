@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Comment, GymSettings, Hold, Route, Wall } from '@/domain/types';
+import type { Comment, GymSettings, Hold, RatingStats, Route, Wall } from '@/domain/types';
 import { device } from '@/lib/device';
 import type { NewComment } from './backend';
 import { useBackend } from './context';
@@ -11,6 +11,7 @@ export const keys = {
   routes: ['routes'] as const,
   comments: ['comments'] as const,
   sends: ['sendCounts'] as const,
+  ratings: ['ratingStats'] as const,
 };
 
 /* ---------------- Reads ---------------- */
@@ -38,6 +39,10 @@ export function useComments() {
 export function useSendCounts() {
   const b = useBackend();
   return useQuery({ queryKey: keys.sends, queryFn: () => b.sendCounts(), refetchInterval: 60_000 });
+}
+export function useRatings() {
+  const b = useBackend();
+  return useQuery({ queryKey: keys.ratings, queryFn: () => b.ratingStats(), refetchInterval: 60_000 });
 }
 
 /** Everything the climber and staff screens need before they can draw. */
@@ -154,6 +159,7 @@ export function useDeleteWall() {
       qc.setQueryData<Route[]>(keys.routes, (old = []) => old.filter((r) => r.wallId !== v.wall.id));
       qc.setQueryData<Comment[]>(keys.comments, (old = []) => old.filter((c) => !gone.has(c.routeId)));
       void qc.invalidateQueries({ queryKey: keys.sends });
+      void qc.invalidateQueries({ queryKey: keys.ratings });
     },
   });
 }
@@ -171,6 +177,7 @@ export function useDeleteRoutes() {
       );
       qc.setQueryData<Comment[]>(keys.comments, (old = []) => old.filter((c) => !gone.has(c.routeId)));
       void qc.invalidateQueries({ queryKey: keys.sends });
+      void qc.invalidateQueries({ queryKey: keys.ratings });
     },
   });
 }
@@ -261,6 +268,34 @@ export function useToggleSend() {
         ...old,
         [routeId]: Math.max(0, (old[routeId] ?? 0) + (sent ? 1 : -1)),
       }));
+    },
+  });
+}
+
+/** Set or clear (null) this phone's star rating on a route. */
+export function useRateRoute() {
+  const b = useBackend();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ routeId, stars }: { routeId: string; stars: number | null }) =>
+      b.rateRoute(routeId, device.get().device, stars),
+    onSuccess: (_d, { routeId, stars }) => {
+      const rated = { ...device.get().rated };
+      const before = rated[routeId];
+      if (stars) rated[routeId] = stars;
+      else delete rated[routeId];
+      device.set({ rated });
+      // Update the average straight away; the next refetch brings the exact numbers.
+      qc.setQueryData<Record<string, RatingStats>>(keys.ratings, (old = {}) => {
+        const cur = old[routeId] ?? { avg: 0, n: 0 };
+        let sum = cur.avg * cur.n - (before ?? 0);
+        let n = cur.n - (before ? 1 : 0);
+        if (stars) {
+          sum += stars;
+          n += 1;
+        }
+        return { ...old, [routeId]: { avg: n ? sum / n : 0, n } };
+      });
     },
   });
 }

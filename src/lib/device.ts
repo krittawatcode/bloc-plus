@@ -8,6 +8,8 @@ interface Prefs {
   device: string;
   nick: string;
   sent: Record<string, true>;
+  /** Stars this phone gave, by route id. */
+  rated: Record<string, number>;
   staffWall: string | null;
   ghost: boolean;
 }
@@ -25,6 +27,7 @@ function read(): Prefs {
     device: p.device ?? `d${uid()}${uid()}`,
     nick: p.nick ?? '',
     sent: p.sent ?? {},
+    rated: p.rated ?? {},
     staffWall: p.staffWall ?? null,
     ghost: p.ghost ?? true,
   };

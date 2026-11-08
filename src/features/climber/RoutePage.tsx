@@ -4,8 +4,9 @@ import { GradeBadge, Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
-import { useToggleSend } from '@/data/queries';
+import { useRateRoute, useToggleSend } from '@/data/queries';
 import { feetNote, markersOf, STRICT_FEET, TYPE_NAME } from '@/domain/routes';
+import type { RatingStats } from '@/domain/types';
 import { device } from '@/lib/device';
 import { plural } from '@/lib/format';
 import { holdsOfWall } from '@/viewer/practiceWall';
@@ -74,6 +75,7 @@ export function RoutePage() {
           ))}
       </div>
       <SendToggle routeId={route.id} count={d.counts[route.id] ?? 0} />
+      <StarRating routeId={route.id} stats={d.ratings[route.id]} />
       <Comments routeId={route.id} comments={d.commentsOf(route.id)} />
     </>
   );
@@ -108,6 +110,49 @@ function SendToggle({ routeId, count }: { routeId: string; count: number }) {
         <span className={s.box} aria-hidden="true" />I sent it
       </label>
       <span className={`${ui.muted} ${ui.smallText}`}>{plural(count, 'climber')} sent this</span>
+    </div>
+  );
+}
+
+/** 1–5 stars, one rating per phone. Tap your current rating again to clear it. */
+function StarRating({ routeId, stats }: { routeId: string; stats?: RatingStats }) {
+  const rate = useRateRoute();
+  const toast = useToast();
+  const [mine, setMine] = useState<number | null>(device.get().rated[routeId] ?? null);
+  const pick = (n: number) => {
+    const stars = n === mine ? null : n;
+    rate.mutate(
+      { routeId, stars },
+      {
+        onSuccess: () => setMine(stars),
+        onError: (err) => toast(friendly(err)),
+      },
+    );
+  };
+  return (
+    <div className={s.ratebar}>
+      <div className={s.stars} role="group" aria-label="Rate this route">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={s.star}
+            aria-label={`${n} ${n === 1 ? 'star' : 'stars'}`}
+            aria-pressed={mine !== null && n <= mine}
+            disabled={rate.isPending}
+            onClick={() => pick(n)}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <span className={`${ui.muted} ${ui.smallText}`}>
+        {stats && stats.n > 0
+          ? `${stats.avg.toFixed(1)} from ${plural(stats.n, 'rating')}`
+          : mine
+            ? 'Thanks for rating'
+            : 'Rate this route'}
+      </span>
     </div>
   );
 }

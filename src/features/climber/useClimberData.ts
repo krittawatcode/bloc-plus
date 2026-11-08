@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBackend, useSession } from '@/data/context';
-import { useComments, useCoreData, useSendCounts } from '@/data/queries';
+import { useComments, useCoreData, useRatings, useSendCounts } from '@/data/queries';
 import { isCurrentWall, PRACTICE_WALL_ID, type Wall } from '@/domain/types';
 import { device } from '@/lib/device';
 
@@ -10,6 +10,7 @@ export function useClimberData() {
   const backend = useBackend();
   const comments = useComments();
   const counts = useSendCounts();
+  const ratings = useRatings();
   const { session } = useSession();
   // The demo wall is for trying things out: climbers never see it, but signed-in staff
   // (and everyone in demo mode) do, so staff can check the climber view of a test route.
@@ -31,6 +32,7 @@ export function useClimberData() {
     ...core,
     comments: comments.data ?? [],
     counts: counts.data ?? {},
+    ratings: ratings.data ?? {},
     bases,
     visibleWalls,
     route: (id: string | undefined) => core.routes.find((r) => r.id === id),

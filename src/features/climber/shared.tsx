@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { GradeBadge, TypePill } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
-import type { Grading, Route } from '@/domain/types';
+import type { Grading, RatingStats, Route } from '@/domain/types';
 import { plural } from '@/lib/format';
 import { StageTools } from '@/viewer/stage';
 import { useViewer } from '@/viewer/stageContext';
@@ -38,11 +38,13 @@ export function ExtraRowBody({
   grading,
   sends,
   comments,
+  rating,
 }: {
   route: Route;
   grading?: Grading;
   sends: number;
   comments: number;
+  rating?: RatingStats;
 }) {
   return (
     <>
@@ -57,6 +59,9 @@ export function ExtraRowBody({
         </span>
       </span>
       <span className={ui.stats}>
+        {rating && rating.n > 0 && (
+          <span aria-label={`Rated ${rating.avg.toFixed(1)} of 5`}>★ {rating.avg.toFixed(1)}</span>
+        )}
         <span>{sends} sent</span>
         <span>{plural(comments, 'comment')}</span>
       </span>
@@ -64,7 +69,13 @@ export function ExtraRowBody({
   );
 }
 
-export function ExtraRow(props: { route: Route; grading?: Grading; sends: number; comments: number }) {
+export function ExtraRow(props: {
+  route: Route;
+  grading?: Grading;
+  sends: number;
+  comments: number;
+  rating?: RatingStats;
+}) {
   return (
     <Link to={`/x/${props.route.id}`} className={ui.row}>
       <ExtraRowBody {...props} />

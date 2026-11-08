@@ -16,6 +16,7 @@ interface Tables {
   routes: Route[];
   comments: Comment[];
   sends: { routeId: string; deviceId: string }[];
+  ratings?: { routeId: string; deviceId: string; stars: number }[];
 }
 
 const KEY = 'blocplus-demo';
@@ -156,6 +157,17 @@ export class DemoBackend implements Backend {
     for (const s of this.t.sends) counts[s.routeId] = (counts[s.routeId] ?? 0) + 1;
     return counts;
   }
+  async ratingStats() {
+    const sums: Record<string, { sum: number; n: number }> = {};
+    for (const r of this.t.ratings ?? []) {
+      const s = (sums[r.routeId] ??= { sum: 0, n: 0 });
+      s.sum += r.stars;
+      s.n += 1;
+    }
+    return Object.fromEntries(
+      Object.entries(sums).map(([id, s]) => [id, { avg: Math.round((s.sum / s.n) * 100) / 100, n: s.n }]),
+    );
+  }
 
   photoUrl(path: string) {
     return this.photoUrls.get(path) ?? '';
@@ -269,6 +281,7 @@ export class DemoBackend implements Backend {
     this.t.routes = this.t.routes.filter((r) => !gone.has(r.id));
     this.t.comments = this.t.comments.filter((c) => !gone.has(c.routeId));
     this.t.sends = this.t.sends.filter((s) => !gone.has(s.routeId));
+    this.t.ratings = (this.t.ratings ?? []).filter((r) => !gone.has(r.routeId));
   }
 
   async deleteHold(hold: Hold) {
@@ -341,6 +354,11 @@ export class DemoBackend implements Backend {
   }
   async removeSend(routeId: string, deviceId: string) {
     this.t.sends = this.t.sends.filter((s) => !(s.routeId === routeId && s.deviceId === deviceId));
+    this.save();
+  }
+  async rateRoute(routeId: string, deviceId: string, stars: number | null) {
+    const rest = (this.t.ratings ?? []).filter((r) => !(r.routeId === routeId && r.deviceId === deviceId));
+    this.t.ratings = stars ? [...rest, { routeId, deviceId, stars }] : rest;
     this.save();
   }
 

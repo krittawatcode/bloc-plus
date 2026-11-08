@@ -101,3 +101,9 @@ export interface Comment {
 }
 
 export const PRACTICE_WALL_ID = 'practice';
+
+/** Star rating of a route: average (1–5) and how many phones rated it. */
+export interface RatingStats {
+  avg: number;
+  n: number;
+}

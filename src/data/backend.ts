@@ -1,4 +1,4 @@
-import type { Comment, GymSettings, Hold, Route, Wall } from '@/domain/types';
+import type { Comment, GymSettings, Hold, RatingStats, Route, Wall } from '@/domain/types';
 
 export interface Session {
   email: string;
@@ -34,6 +34,8 @@ export interface Backend {
   /** Visible comments for climbers; all comments for staff. Newest first. */
   listComments(): Promise<Comment[]>;
   sendCounts(): Promise<Record<string, number>>;
+  /** Star ratings per route id. */
+  ratingStats(): Promise<Record<string, RatingStats>>;
 
   /** Public URL of a comment photo. */
   photoUrl(path: string): string;
@@ -79,6 +81,8 @@ export interface Backend {
   addSend(routeId: string, deviceId: string): Promise<void>;
   /** Undo this device's send on a route. */
   removeSend(routeId: string, deviceId: string): Promise<void>;
+  /** Set this device's 1–5 star rating on a route, or clear it with null. */
+  rateRoute(routeId: string, deviceId: string, stars: number | null): Promise<void>;
 }
 
 export class BackendError extends Error {}

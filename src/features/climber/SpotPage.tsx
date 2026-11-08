@@ -64,6 +64,7 @@ export function SpotPage() {
                 grading={d.settings?.grading}
                 sends={d.counts[x.id] ?? 0}
                 comments={d.commentsOf(x.id).length}
+                rating={d.ratings[x.id]}
               />
             </li>
           ))
