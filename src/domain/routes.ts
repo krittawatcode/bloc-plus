@@ -23,7 +23,18 @@ export const RULES = [
   'Volume is off',
   'Sit start',
   'Match on top',
+  'Marked feet only',
 ];
+
+/** The competition-style rule: feet may only go on holds of the route. */
+export const STRICT_FEET = 'Marked feet only';
+
+/** What climbers may use for feet. Feet are free unless the route says otherwise. */
+export function feetNote(route: Pick<Route, 'holds' | 'rules'>): string {
+  if (route.rules.includes(STRICT_FEET)) return 'Feet: route holds only';
+  if (Object.values(route.holds).includes('foot')) return 'Feet: any hold (marked Feet holds are feet only)';
+  return 'Feet: any hold';
+}
 
 export const TAPE_COLORS: Record<string, string> = {
   yellow: '#F2C230',
@@ -76,7 +87,8 @@ export function tally(route: Pick<Route, 'type' | 'holds'>): string {
   const v = Object.values(route.holds);
   const n = (r: Role) => v.filter((x) => x === r).length;
   if (route.type === 'elim') return `${n('off')} crossed out · ${v.length - n('off')} still on`;
-  return `${v.length} holds · ${n('start')} start · ${n('top')} top · ${n('foot')} feet only`;
+  const feet = n('foot') ? ` · ${n('foot')} feet only` : '';
+  return `${v.length} holds · ${n('start')} start · ${n('top')} top${feet}`;
 }
 
 /** Returns a message explaining what is missing, or null if the route can be saved. */

@@ -5,7 +5,7 @@ import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
 import { useAddSend } from '@/data/queries';
-import { markersOf, TYPE_NAME } from '@/domain/routes';
+import { feetNote, markersOf, STRICT_FEET, TYPE_NAME } from '@/domain/routes';
 import { device } from '@/lib/device';
 import { plural } from '@/lib/format';
 import { holdsOfWall } from '@/viewer/practiceWall';
@@ -67,15 +67,16 @@ export function RoutePage() {
         <p className={ui.muted}>{help}</p>
       </div>
       {route.description && <p className={ui.desc}>{route.description}</p>}
-      {route.rules.length > 0 && (
-        <div className={ui.chips}>
-          {route.rules.map((r) => (
+      <div className={ui.chips}>
+        <span className={ui.chip}>{feetNote(route)}</span>
+        {route.rules
+          .filter((r) => r !== STRICT_FEET)
+          .map((r) => (
             <span key={r} className={ui.chip}>
               {r}
             </span>
           ))}
-        </div>
-      )}
+      </div>
       <SendButton routeId={route.id} count={d.counts[route.id] ?? 0} />
       <Comments routeId={route.id} comments={d.commentsOf(route.id)} />
     </>

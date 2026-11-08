@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { parentOf, startingHolds, tally, toggleHold, validateRoute, withMarkers } from './routes';
+import {
+  feetNote,
+  parentOf,
+  startingHolds,
+  STRICT_FEET,
+  tally,
+  toggleHold,
+  validateRoute,
+  withMarkers,
+} from './routes';
 import type { Hold, Route } from './types';
 
 const hold = (id: string, onId: string | null = null): Hold => ({
@@ -75,7 +84,18 @@ describe('setting routes', () => {
   });
 
   it('summarises a route', () => {
-    expect(tally(base)).toBe('3 holds · 1 start · 1 top · 0 feet only');
+    expect(tally(base)).toBe('3 holds · 1 start · 1 top');
+    expect(tally({ type: 'new', holds: { a: 'start', b: 'top', c: 'foot' } })).toBe(
+      '3 holds · 1 start · 1 top · 1 feet only',
+    );
     expect(tally({ type: 'elim', holds: { a: 'start', jug: 'off' } })).toBe('1 crossed out · 1 still on');
+  });
+});
+
+describe('feetNote', () => {
+  it('leaves feet free unless the route is strict', () => {
+    expect(feetNote({ holds: { a: 'start' }, rules: [] })).toBe('Feet: any hold');
+    expect(feetNote({ holds: { a: 'foot' }, rules: [] })).toMatch(/^Feet: any hold/);
+    expect(feetNote({ holds: {}, rules: [STRICT_FEET] })).toBe('Feet: route holds only');
   });
 });

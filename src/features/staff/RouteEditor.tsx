@@ -223,7 +223,7 @@ export function RouteEditor() {
       <p className={ui.muted}>
         {draft.type === 'elim'
           ? `Tap a ${base?.name} hold on the wall to cross it out. Tap it again to bring it back.`
-          : 'Pick Start, Hand, Top or Feet on the wall view, then tap holds. Tap a hold again to remove it. Tapping a marker hold selects the big hold under it too.'}
+          : 'Pick Start, Hand or Top on the wall view, then tap holds. Tap a hold again to remove it. Tapping a marker hold selects the big hold under it too. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" rule.'}
       </p>
 
       <div className={ui.field}>

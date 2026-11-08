@@ -78,3 +78,12 @@
   opacity: 0;
   cursor: pointer;
 }
+
+/* Comments grouped under one route label on the start page. */
+.commentGroup {
+  margin-top: 14px;
+}
+.commentGroup > a,
+.commentGroup > button {
+  margin-bottom: 4px;
+}
