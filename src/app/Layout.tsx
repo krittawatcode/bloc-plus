@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ui } from '@/components/uiStyles';
 import { useBackend } from '@/data/context';
@@ -12,6 +12,13 @@ export function Layout() {
   const { pathname } = useLocation();
   const gym = settings.data?.gymName ?? '';
   const staff = pathname.startsWith('/staff');
+  const panel = useRef<HTMLElement>(null);
+
+  // Every new screen opens at the top: the page scrolls on phones, the side panel on wide screens.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    panel.current?.scrollTo(0, 0);
+  }, [pathname]);
 
   useEffect(() => {
     document.title = gym ? `Bloc+ · ${gym}` : 'Bloc+';
@@ -40,7 +47,7 @@ export function Layout() {
       </header>
       <main className={s.app}>
         <Stage />
-        <aside className={s.panel}>
+        <aside className={s.panel} ref={panel}>
           <Outlet />
         </aside>
       </main>

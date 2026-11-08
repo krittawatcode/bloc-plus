@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { GradeBadge, Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
@@ -28,9 +28,6 @@ export function RoutePage() {
     `route:${route?.id}:${ghost}:${d.holds.length}`,
     d.isLoading ? 'Loading…' : 'This route has been taken down.',
   );
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [routeId]);
 
   if (d.isLoading) return <Loading />;
   if (!route || route.archived || !base)
