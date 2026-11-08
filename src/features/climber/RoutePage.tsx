@@ -58,11 +58,10 @@ export function RoutePage() {
         {base.name} start
       </Link>
       <div className={ui.head}>
-        <p className={ui.eyebrow}>
-          {TYPE_NAME[route.type]} · set by {route.setter || 'staff'}
-        </p>
+        <p className={ui.eyebrow}>{TYPE_NAME[route.type]}</p>
         <h2>
-          {route.name} <GradeBadge grading={d.settings?.grading} id={route.grade} />
+          {route.name} <GradeBadge grading={d.settings?.grading} id={route.grade} />{' '}
+          <span className={`${ui.muted} ${ui.smallText}`}>by {route.setter || 'staff'}</span>
         </h2>
         <p className={ui.muted}>{help}</p>
       </div>

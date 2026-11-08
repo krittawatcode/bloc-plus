@@ -47,6 +47,7 @@ export function ExtraRow({
     <Link to={`/x/${route.id}`} className={ui.row}>
       <span className={ui.grow}>
         <strong>{route.name}</strong>
+        {route.setter && <span className={`${ui.muted} ${ui.smallText}`}> by {route.setter}</span>}
         <span className={ui.meta}>
           <TypePill type={route.type} />
           <GradeBadge grading={grading} id={route.grade} />

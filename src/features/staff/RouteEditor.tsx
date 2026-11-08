@@ -5,6 +5,7 @@ import { ui } from '@/components/uiStyles';
 import d from '@/components/Dock.module.css';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
+import { useSession } from '@/data/context';
 import { useComments, useCoreData, useDeleteRoutes, useSaveRoutes } from '@/data/queries';
 import { defaultGradeId, gradeLabel, PRESETS } from '@/domain/grading';
 import {
@@ -46,6 +47,8 @@ export function RouteEditor() {
   const toast = useToast();
   const navigate = useNavigate();
   const viewer = useViewer();
+  const { session } = useSession();
+  const me = nameFromEmail(session?.email);
   const nameRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<Route | null>(null);
   const [role, setRole] = useState<Exclude<Role, 'off'>>('start');
@@ -77,7 +80,7 @@ export function RouteEditor() {
         description: '',
         rules: [],
         holds: startingHolds(base, params.type),
-        setter: '',
+        setter: me,
         archived: false,
         createdAt: '',
       });
@@ -102,6 +105,7 @@ export function RouteEditor() {
     });
   }, [
     draft,
+     me,
     data.isLoading,
     data.settings,
     data.routes,
@@ -419,4 +423,14 @@ function DeleteRoute({ route }: { route: Route }) {
       </div>
     </div>
   );
+}
+
+/** "bom@bloccity.co.th" → "Bom", used as the default "Set by" name. */
+function nameFromEmail(email?: string): string {
+  const local =
+    email
+      ?.split('@')[0]
+      ?.replace(/[._-]+/g, ' ')
+      .trim() ?? '';
+  return local ? local[0]!.toUpperCase() + local.slice(1) : '';
 }
