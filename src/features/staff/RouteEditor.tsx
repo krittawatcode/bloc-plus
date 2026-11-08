@@ -105,7 +105,7 @@ export function RouteEditor() {
     });
   }, [
     draft,
-     me,
+    me,
     data.isLoading,
     data.settings,
     data.routes,
