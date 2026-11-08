@@ -19,7 +19,7 @@ import {
 import type { Role, Route, RouteType } from '@/domain/types';
 import { plural, uid } from '@/lib/format';
 import { holdsOfWall } from '@/viewer/practiceWall';
-import { StageDock } from '@/viewer/stage';
+import { StageDock, StageTools } from '@/viewer/stage';
 import { useStageScene, useViewer, useViewerEvents } from '@/viewer/stageContext';
 import { useStaffWall } from './staffWall';
 import s from './Staff.module.css';
@@ -178,6 +178,11 @@ export function RouteEditor() {
 
   return (
     <>
+      <StageTools>
+        <button type="button" onClick={() => viewer?.resetView()}>
+          Reset view
+        </button>
+      </StageTools>
       <StageDock>
         {draft.type !== 'elim' ? (
           <div className={d.seg} role="group" aria-label="Role to place">
