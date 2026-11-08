@@ -21,7 +21,7 @@ export function SpotPage() {
   );
 
   if (d.isLoading) return <Loading />;
-  if (!base || base.type !== 'base')
+  if (!base || base.type !== 'base' || base.archived)
     return (
       <>
         <p className={ui.empty}>This start is no longer here. The wall may have been reset.</p>

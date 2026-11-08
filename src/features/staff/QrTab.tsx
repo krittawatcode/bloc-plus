@@ -16,7 +16,9 @@ export function QrTab() {
   const [link, setLink] = useState<string | null>(null);
   const [codes, setCodes] = useState<Record<string, string>>({});
   const base = link ?? d.settings?.qrLink ?? '';
-  const routes = d.routes.filter((r) => r.type === 'base' && d.walls.some((w) => w.id === r.wallId));
+  const routes = d.routes.filter(
+    (r) => r.type === 'base' && !r.archived && d.walls.some((w) => w.id === r.wallId && !w.retiredAt),
+  );
 
   useStageScene(null, 'qr', 'QR codes go next to the start hold of each normal route.');
   useStageCollapsed();

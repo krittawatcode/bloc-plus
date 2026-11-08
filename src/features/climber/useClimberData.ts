@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useBackend, useSession } from '@/data/context';
 import { useComments, useCoreData, useSendCounts } from '@/data/queries';
-import { PRACTICE_WALL_ID, type Wall } from '@/domain/types';
+import { isCurrentWall, PRACTICE_WALL_ID, type Wall } from '@/domain/types';
 import { device } from '@/lib/device';
 
 /** Data every climber screen uses, plus helpers to look things up. */
@@ -15,9 +15,9 @@ export function useClimberData() {
   // (and everyone in demo mode) do, so staff can check the climber view of a test route.
   const showPractice = backend.kind === 'demo' || !!session?.isStaff;
   const bases = (wallId?: string) =>
-    core.routes.filter((r) => r.type === 'base' && (!wallId || r.wallId === wallId));
+    core.routes.filter((r) => r.type === 'base' && !r.archived && (!wallId || r.wallId === wallId));
   const visibleWalls: Pick<Wall, 'id' | 'name'>[] = [
-    ...core.walls,
+    ...core.walls.filter(isCurrentWall),
     ...(showPractice
       ? [
           {

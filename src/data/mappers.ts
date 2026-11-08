@@ -25,6 +25,8 @@ export const wallFromRow = (r: T['walls']['Row']): Wall => ({
   spin: r.spin,
   tris: r.tris,
   createdAt: r.created_at,
+  retiredAt: r.retired_at,
+  replacedBy: r.replaced_by,
 });
 
 export const holdFromRow = (r: T['holds']['Row']): Hold => ({

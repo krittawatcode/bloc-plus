@@ -187,6 +187,8 @@ export class DemoBackend implements Backend {
       spin: 0,
       tris: w.tris,
       createdAt: new Date().toISOString(),
+      retiredAt: null,
+      replacedBy: null,
     };
     this.t.walls.push(wall);
     this.save();
@@ -203,6 +205,29 @@ export class DemoBackend implements Backend {
     Object.assign(w, o, { ghostPath });
     this.save();
     return structuredClone(w);
+  }
+
+  async renameWall(wall: Wall, name: string) {
+    this.requireStaff();
+    const w = this.t.walls.find((x) => x.id === wall.id);
+    if (!w) throw new BackendError('That wall no longer exists.');
+    w.name = name;
+    this.save();
+    return structuredClone(w);
+  }
+
+  async resetWall(
+    old: Wall,
+    next: { id: string; name: string; tris: number },
+    scan: ArrayBuffer,
+    ghost: Float32Array,
+  ) {
+    const wall = await this.addWall(next, scan, ghost);
+    const w = this.t.walls.find((x) => x.id === old.id);
+    if (w) Object.assign(w, { retiredAt: new Date().toISOString(), replacedBy: wall.id });
+    for (const r of this.t.routes) if (r.wallId === old.id) r.archived = true;
+    this.save();
+    return wall;
   }
 
   async deleteWall(wall: Wall, holds: Hold[], routes: Route[], photoPaths: string[]) {

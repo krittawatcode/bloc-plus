@@ -47,6 +47,7 @@ React 19 + TypeScript (strict, `noUncheckedIndexedAccess`) + Vite 7, React Route
 - Route types: base (normal taped route), Elimination (cross out holds), New route (start / hand / top / feet).
 - **Feet are optional.** Default is any foot hold. Holds tagged Feet are feet-only; the rule "Marked feet only" (`STRICT_FEET`) makes it competition style. `feetNote()` gives the climber-facing text.
 - The built-in **Demo wall** (called "practice" in code: `PRACTICE_WALL_ID`, wall id `practice`, hold ids `p*`, `v1–v3`) is hidden from climbers; signed-in staff see it as "Demo wall · staff only" (everyone does in demo mode).
+- **Wall reset** = upload a new scan for a wall. It becomes a new wall row with the same name; the old wall gets `retired_at`/`replaced_by` and all its routes `archived`. Nothing is deleted: staff see it under Walls › Past walls with sends and comments per route. Climbers and pickers only use current walls (`isCurrentWall`).
 - Comments are always shown with the route they belong to (`RouteTag`). Lists that mix routes group comments under one label per route.
 
 ## UI rules

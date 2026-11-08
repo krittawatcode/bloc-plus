@@ -1,11 +1,11 @@
 import { ui } from '@/components/uiStyles';
 import { useWalls } from '@/data/queries';
-import { PRACTICE_WALL_ID } from '@/domain/types';
+import { isCurrentWall, PRACTICE_WALL_ID } from '@/domain/types';
 import { useStaffWall } from './staffWall';
 
 export function WallSelect() {
   const { wallId, setWallId } = useStaffWall();
-  const walls = useWalls().data ?? [];
+  const walls = (useWalls().data ?? []).filter(isCurrentWall);
   return (
     <div className={ui.field}>
       <label className={ui.label} htmlFor="wallSelect">

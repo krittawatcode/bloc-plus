@@ -28,6 +28,8 @@ export type Database = {
           spin: number;
           tris: number | null;
           created_at: string;
+          retired_at: string | null;
+          replaced_by: string | null;
         };
         Insert: {
           id: string;
@@ -38,6 +40,8 @@ export type Database = {
           spin?: number;
           tris?: number | null;
           created_at?: string;
+          retired_at?: string | null;
+          replaced_by?: string | null;
         };
         Update: {
           id?: string;
@@ -48,6 +52,8 @@ export type Database = {
           spin?: number;
           tris?: number | null;
           created_at?: string;
+          retired_at?: string | null;
+          replaced_by?: string | null;
         };
         Relationships: [];
       };

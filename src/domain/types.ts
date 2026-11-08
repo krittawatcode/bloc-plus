@@ -42,7 +42,14 @@ export interface Wall {
   spin: number;
   tris: number | null;
   createdAt: string;
+  /** Set when the wall was reset: a newer scan replaced it. Its routes are archived, stats kept. */
+  retiredAt: string | null;
+  /** The wall that replaced this one. */
+  replacedBy: string | null;
 }
+
+/** A wall climbers can see now (not replaced by a reset). */
+export const isCurrentWall = (w: Pick<Wall, 'retiredAt'>) => !w.retiredAt;
 
 export type HoldKind = 'hold' | 'volume' | 'marker';
 

@@ -181,6 +181,33 @@ export class SupabaseBackend implements Backend {
     return wallFromRow(row);
   }
 
+  async renameWall(wall: Wall, name: string) {
+    const rows = must(await this.sb.from('walls').update({ name }).eq('id', wall.id).select());
+    if (!rows[0]) throw new BackendError('The wall was not renamed. Check you are signed in as staff.');
+    return wallFromRow(rows[0]);
+  }
+
+  async resetWall(
+    old: Wall,
+    next: { id: string; name: string; tris: number },
+    scan: ArrayBuffer,
+    ghost: Float32Array,
+  ) {
+    const wall = await this.addWall(next, scan, ghost);
+    const now = new Date().toISOString();
+    ok(await this.sb.from('routes').update({ archived: true }).eq('wall_id', old.id));
+    const rows = must(
+      await this.sb
+        .from('walls')
+        .update({ retired_at: now, replaced_by: wall.id })
+        .eq('id', old.id)
+        .select('id'),
+    );
+    if (!rows.length)
+      throw new BackendError('The new scan was added, but the old wall could not be retired.');
+    return wall;
+  }
+
   async deleteWall(wall: Wall, holds: Hold[], _routes: Route[], photoPaths: string[]) {
     // Routes point at walls by id only (the practice wall has no row), so delete them first.
     // Comments and sends go with their routes, and holds with the wall (foreign keys cascade).

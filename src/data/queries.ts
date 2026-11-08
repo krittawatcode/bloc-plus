@@ -112,6 +112,35 @@ export function useReorientWall() {
   });
 }
 
+export function useRenameWall() {
+  const b = useBackend();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { wall: Wall; name: string }) => b.renameWall(v.wall, v.name),
+    onSuccess: (wall) =>
+      qc.setQueryData<Wall[]>(keys.walls, (old = []) => old.map((w) => (w.id === wall.id ? wall : w))),
+  });
+}
+
+/** Reset a wall with a new scan. Its routes get archived, so routes and walls are reloaded. */
+export function useResetWall() {
+  const b = useBackend();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: {
+      old: Wall;
+      next: { id: string; name: string; tris: number };
+      scan: ArrayBuffer;
+      ghost: Float32Array;
+    }) => b.resetWall(v.old, v.next, v.scan, v.ghost),
+    onSettled: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.walls }),
+        qc.invalidateQueries({ queryKey: keys.routes }),
+      ]),
+  });
+}
+
 export function useDeleteWall() {
   const b = useBackend();
   const qc = useQueryClient();

@@ -51,6 +51,17 @@ export interface Backend {
     o: { upright: boolean; spin: number },
     ghost: Float32Array,
   ): Promise<Wall>;
+  renameWall(wall: Wall, name: string): Promise<Wall>;
+  /**
+   * Reset a wall: the new scan becomes a new wall with the same name. The old wall is kept but
+   * retired, and all its routes are archived (sends and comments stay, so stats can be seen later).
+   */
+  resetWall(
+    old: Wall,
+    next: { id: string; name: string; tris: number },
+    scan: ArrayBuffer,
+    ghost: Float32Array,
+  ): Promise<Wall>;
   /** Remove a wall with its scan, holds and routes. Comments and sends on those routes go too. */
   deleteWall(wall: Wall, holds: Hold[], routes: Route[], photoPaths: string[]): Promise<void>;
   /** Delete routes for good. Pass a normal route's extras too: they are deleted with it. */

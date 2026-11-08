@@ -220,3 +220,14 @@
 .archived > a {
   opacity: 0.55;
 }
+
+/* An input with its button on the same line (wall name). */
+.inlineField {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.inlineField > input {
+  flex: 1;
+  min-width: 0;
+}

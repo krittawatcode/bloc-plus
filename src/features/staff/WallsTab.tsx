@@ -3,23 +3,35 @@ import { ConfirmButton, Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
-import { useAddWall, useComments, useCoreData, useDeleteWall } from '@/data/queries';
-import { PRACTICE_WALL_ID, type Wall } from '@/domain/types';
+import {
+  useAddWall,
+  useComments,
+  useCoreData,
+  useDeleteWall,
+  useRenameWall,
+  useResetWall,
+  useSendCounts,
+} from '@/data/queries';
+import { ExtraRowBody } from '@/features/climber/shared';
+import { isCurrentWall, PRACTICE_WALL_ID, type Route, type Wall } from '@/domain/types';
 import { fmt, mb, plural, uid } from '@/lib/format';
-import { ghostPoints, parseScan, ScanError } from '@/viewer/scan';
+import { ghostPoints, ScanError } from '@/viewer/scan';
 import { StageTools } from '@/viewer/stage';
 import { useStageScene, useViewer } from '@/viewer/stageContext';
 import { ScanTagger } from './ScanTagger';
 import { useStaffWall } from './staffWall';
+import { readScanFile } from './scanFile';
 import { useRememberScan } from './useScan';
 import s from './Staff.module.css';
-
-const MAX_BYTES = 50 * 1048576;
 
 export function WallsTab() {
   const d = useCoreData();
   const { wallId, setWallId } = useStaffWall();
   const wall = d.walls.find((w) => w.id === wallId);
+  const current = d.walls.filter(isCurrentWall);
+  const past = d.walls
+    .filter((w) => !isCurrentWall(w))
+    .sort((a, b) => (b.retiredAt ?? '').localeCompare(a.retiredAt ?? ''));
 
   if (d.isLoading) return <Loading />;
   return (
@@ -27,7 +39,7 @@ export function WallsTab() {
       <div className={ui.field}>
         <span className={ui.label}>Walls</span>
         <ul className={ui.list}>
-          {d.walls.map((w) => (
+          {current.map((w) => (
             <li key={w.id}>
               <button
                 type="button"
@@ -39,7 +51,8 @@ export function WallsTab() {
                   <br />
                   <span className={`${ui.muted} ${ui.smallText}`}>
                     {d.holds.filter((h) => h.wallId === w.id).length} holds tagged ·{' '}
-                    {d.routes.filter((r) => r.wallId === w.id && r.type === 'base').length} routes
+                    {d.routes.filter((r) => r.wallId === w.id && r.type === 'base' && !r.archived).length}{' '}
+                    routes
                   </span>
                 </span>
               </button>
@@ -62,8 +75,15 @@ export function WallsTab() {
           </li>
         </ul>
       </div>
-      <AddWall open={!d.walls.length} onAdded={(w) => setWallId(w.id)} />
-      {wall ? <ScannedWall key={wall.id} wall={wall} /> : <PracticeWall />}
+      <AddWall open={!current.length} onAdded={(w) => setWallId(w.id)} />
+      {past.length > 0 && <PastWalls walls={past} />}
+      {!wall ? (
+        <PracticeWall />
+      ) : isCurrentWall(wall) ? (
+        <ScannedWall key={wall.id} wall={wall} />
+      ) : (
+        <PastWall key={wall.id} wall={wall} />
+      )}
     </>
   );
 }
@@ -107,6 +127,8 @@ function ScannedWall({ wall }: { wall: Wall }) {
     <>
       <h3>{wall.name}</h3>
       <ScanTagger wall={wall} />
+      <RenameWall wall={wall} />
+      <ResetWall wall={wall} routes={routes.filter((r) => !r.archived)} />
       <div className={ui.field}>
         <span className={ui.label}>Remove this wall</span>
         <p className={`${ui.muted} ${ui.smallText}`}>
@@ -151,14 +173,9 @@ function AddWall({ open, onAdded }: { open: boolean; onAdded: (w: Wall) => void 
   const [busy, setBusy] = useState<string | null>(null);
 
   const onFile = async (file: File) => {
-    if (file.size > MAX_BYTES)
-      return toast(
-        `That file is ${mb(file.size)}. The limit is 50 MB, so export a lighter version of the scan.`,
-      );
     setBusy('Reading the scan…');
     try {
-      const buf = await file.arrayBuffer();
-      const scan = await parseScan(buf, { upright: false, spin: 0 });
+      const { buf, scan } = await readScanFile(file);
       setBusy(`Uploading the scan (${mb(buf.byteLength)}, ${fmt(scan.tris)} triangles)…`);
       const id = uid('w');
       const wallName = name.trim() || file.name.replace(/\.[^.]+$/, '').slice(0, 40) || 'New wall';
@@ -194,30 +211,285 @@ function AddWall({ open, onAdded }: { open: boolean; onAdded: (w: Wall) => void 
           placeholder="Like Cave or Slab corner"
         />
       </div>
-      {busy ? (
-        <Loading text={busy} />
-      ) : (
-        <label className={s.drop}>
-          <input
-            type="file"
-            id="wallFile"
-            accept=".glb,model/gltf-binary"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = '';
-              if (f) void onFile(f);
-            }}
-          />
-          <strong>Choose the scan (.glb)</strong>
-          <span className={`${ui.muted} ${ui.smallText}`}>
-            Export from Polycam or KIRI Engine as GLB, without Draco compression. Up to 50 MB.
-          </span>
-        </label>
-      )}
+      <ScanDrop busy={busy} onFile={(f) => void onFile(f)} />
       <p className={`${ui.muted} ${ui.smallText}`}>
         Scan tips: bright even light, slow overlapping photos, extra angles under overhangs, one wall section
         at a time.
       </p>
     </details>
+  );
+}
+
+/** File picker for a .glb scan, or progress while one is being read and uploaded. */
+function ScanDrop({ busy, onFile }: { busy: string | null; onFile: (f: File) => void }) {
+  if (busy) return <Loading text={busy} />;
+  return (
+    <label className={s.drop}>
+      <input
+        type="file"
+        accept=".glb,model/gltf-binary"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = '';
+          if (f) onFile(f);
+        }}
+      />
+      <strong>Choose the scan (.glb)</strong>
+      <span className={`${ui.muted} ${ui.smallText}`}>
+        Export from Polycam or KIRI Engine as GLB, without Draco compression. Up to 50 MB.
+      </span>
+    </label>
+  );
+}
+
+function RenameWall({ wall }: { wall: Wall }) {
+  const rename = useRenameWall();
+  const toast = useToast();
+  const [name, setName] = useState(wall.name);
+  const next = name.trim();
+  const changed = !!next && next !== wall.name;
+  return (
+    <div className={ui.field}>
+      <label className={ui.label} htmlFor="wallName">
+        Wall name
+      </label>
+      <div className={s.inlineField}>
+        <input
+          id="wallName"
+          className={ui.input}
+          maxLength={40}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <button
+          type="button"
+          className={`${ui.btn} ${ui.small}`}
+          disabled={!changed || rename.isPending}
+          onClick={() =>
+            rename.mutate(
+              { wall, name: next },
+              { onSuccess: () => toast('Wall renamed.'), onError: (e) => toast(friendly(e)) },
+            )
+          }
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Reset: the setters stripped the wall and set new routes, so staff upload a new scan.
+ * The old wall, its routes, sends and comments are kept as a past wall for stats.
+ */
+function ResetWall({ wall, routes }: { wall: Wall; routes: Route[] }) {
+  const reset = useResetWall();
+  const remember = useRememberScan();
+  const toast = useToast();
+  const { setWallId } = useStaffWall();
+  const [busy, setBusy] = useState<string | null>(null);
+  const starts = routes.filter((r) => r.type === 'base').length;
+  const extras = routes.length - starts;
+
+  const onFile = async (file: File) => {
+    setBusy('Reading the new scan…');
+    try {
+      const { buf, scan } = await readScanFile(file);
+      setBusy(`Uploading the new scan (${mb(buf.byteLength)})…`);
+      const next = await reset.mutateAsync({
+        old: wall,
+        next: { id: uid('w'), name: wall.name, tris: scan.tris },
+        scan: buf,
+        ghost: ghostPoints(scan),
+      });
+      remember(next, scan);
+      setWallId(next.id);
+      toast(`${wall.name} reset. Tag the new holds, then set the new routes and print their QR codes.`);
+    } catch (e) {
+      toast(e instanceof ScanError ? e.message : friendly(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <details className={s.box}>
+      <summary>Reset this wall</summary>
+      <p className={`${ui.muted} ${ui.smallText}`}>
+        After the setters strip the wall and set new routes, upload a new scan here.{' '}
+        {routes.length
+          ? `The ${plural(starts, 'route')} and ${plural(extras, 'extra')} on it now are archived with their sends and comments.`
+          : 'There are no routes on it now.'}{' '}
+        Climbers stop seeing them and old QR codes say the wall was reset. You can still see everything under
+        Past walls.
+      </p>
+      <ScanDrop busy={busy} onFile={(f) => void onFile(f)} />
+    </details>
+  );
+}
+
+const day = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+/** Totals for a wall's routes: starts, extras, sends and comments. */
+function useWallStats(wallId: string) {
+  const d = useCoreData();
+  const counts = useSendCounts().data ?? {};
+  const comments = useComments().data ?? [];
+  const routes = d.routes.filter((r) => r.wallId === wallId);
+  const ids = new Set(routes.map((r) => r.id));
+  return {
+    routes,
+    counts,
+    comments,
+    starts: routes.filter((r) => r.type === 'base').length,
+    extras: routes.filter((r) => r.type !== 'base').length,
+    sends: routes.reduce((n, r) => n + (counts[r.id] ?? 0), 0),
+    commentCount: comments.filter((c) => ids.has(c.routeId)).length,
+  };
+}
+
+function PastWalls({ walls }: { walls: Wall[] }) {
+  const { wallId, setWallId } = useStaffWall();
+  return (
+    <details className={s.box} open={walls.some((w) => w.id === wallId)}>
+      <summary>Past walls ({walls.length})</summary>
+      <p className={`${ui.muted} ${ui.smallText}`}>
+        Walls that were reset. Their routes, sends and comments are kept so you can look back at them.
+      </p>
+      <ul className={ui.list}>
+        {walls.map((w) => (
+          <li key={w.id}>
+            <PastWallRow wall={w} selected={w.id === wallId} onPick={() => setWallId(w.id)} />
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function PastWallRow({ wall, selected, onPick }: { wall: Wall; selected: boolean; onPick: () => void }) {
+  const st = useWallStats(wall.id);
+  return (
+    <button type="button" className={selected ? ui.rowSelected : ui.row} onClick={onPick}>
+      <span className={ui.grow}>
+        <strong>{wall.name}</strong>
+        <br />
+        <span className={`${ui.muted} ${ui.smallText}`}>
+          {day(wall.createdAt)} – {day(wall.retiredAt)}
+        </span>
+      </span>
+      <span className={ui.stats}>
+        <span>{plural(st.starts + st.extras, 'route')}</span>
+        <span>{st.sends} sent</span>
+      </span>
+    </button>
+  );
+}
+
+/** A reset wall: read-only stats of every route that was on it. Tap a route to see it on the old scan. */
+function PastWall({ wall }: { wall: Wall }) {
+  const d = useCoreData();
+  const viewer = useViewer();
+  const del = useDeleteWall();
+  const toast = useToast();
+  const { setWallId } = useStaffWall();
+  const st = useWallStats(wall.id);
+  const [shownId, setShownId] = useState<string | null>(null);
+  const shown = st.routes.find((r) => r.id === shownId);
+  const holds = d.holds.filter((h) => h.wallId === wall.id);
+  const commentsOf = (id: string) => st.comments.filter((c) => c.routeId === id).length;
+  const ranked = [...st.routes].sort((a, b) => (st.counts[b.id] ?? 0) - (st.counts[a.id] ?? 0));
+  const base = (r: Route) => (r.baseId ? d.routes.find((x) => x.id === r.baseId) : undefined);
+
+  useStageScene(
+    shown
+      ? { kind: 'route', wallId: wall.id, holds: shown.holds, ghost: true }
+      : { kind: 'wall', wallId: wall.id, markers: {} },
+    `past:${wall.id}:${shown?.id}:${holds.length}`,
+  );
+
+  return (
+    <>
+      <StageTools>
+        <button type="button" onClick={() => viewer?.resetView()}>
+          Reset view
+        </button>
+      </StageTools>
+      <div className={ui.head}>
+        <p className={ui.eyebrow}>
+          Past wall · {day(wall.createdAt)} – {day(wall.retiredAt)}
+        </p>
+        <h3>{wall.name}</h3>
+        <p className={ui.muted}>
+          {plural(st.starts, 'route')} · {plural(st.extras, 'extra')} · {st.sends} sent ·{' '}
+          {plural(st.commentCount, 'comment')}
+        </p>
+      </div>
+      {wall.replacedBy && d.walls.some((w) => w.id === wall.replacedBy) && (
+        <button type="button" className={ui.link} onClick={() => setWallId(wall.replacedBy!)}>
+          Go to the current {wall.name}
+        </button>
+      )}
+      <h3>Routes, most sent first</h3>
+      {ranked.length ? (
+        <ul className={ui.list}>
+          {ranked.map((r) => (
+            <li key={r.id}>
+              <button
+                type="button"
+                className={shownId === r.id ? ui.rowSelected : ui.row}
+                aria-pressed={shownId === r.id}
+                onClick={() => setShownId((cur) => (cur === r.id ? null : r.id))}
+              >
+                <ExtraRowBody
+                  route={{ ...r, archived: false, name: base(r) ? `${base(r)!.name} › ${r.name}` : r.name }}
+                  grading={d.settings?.grading}
+                  sends={st.counts[r.id] ?? 0}
+                  comments={commentsOf(r.id)}
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={ui.empty}>No routes were set on this wall.</p>
+      )}
+      <div className={ui.field}>
+        <span className={ui.label}>Remove for good</span>
+        <p className={`${ui.muted} ${ui.smallText}`}>
+          Deletes the old scan, its routes, sends and comments. The stats are gone after this.
+        </p>
+        <div className={ui.actions}>
+          <ConfirmButton
+            className={`${ui.btn} ${ui.small} ${ui.danger}`}
+            confirmText="Tap again to delete everything"
+            disabled={del.isPending}
+            onConfirm={() =>
+              del.mutate(
+                {
+                  wall,
+                  holds,
+                  routes: st.routes,
+                  photoPaths: st.comments
+                    .filter((c) => st.routes.some((r) => r.id === c.routeId))
+                    .flatMap((c) => (c.photoPath ? [c.photoPath] : [])),
+                },
+                {
+                  onSuccess: () => {
+                    toast(`Past ${wall.name} deleted.`);
+                    setWallId(wall.replacedBy ?? PRACTICE_WALL_ID);
+                  },
+                  onError: (e) => toast(friendly(e)),
+                },
+              )
+            }
+          >
+            {del.isPending ? 'Deleting…' : 'Delete this past wall'}
+          </ConfirmButton>
+        </div>
+      </div>
+    </>
   );
 }
