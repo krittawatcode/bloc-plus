@@ -52,7 +52,7 @@ export function WallsTab() {
               onClick={() => setWallId(PRACTICE_WALL_ID)}
             >
               <span className={ui.grow}>
-                <strong>Practice wall</strong>
+                <strong>Demo wall</strong>
                 <br />
                 <span className={`${ui.muted} ${ui.smallText}`}>
                   Built in. Try the flow here. Climbers don't see it.
@@ -79,7 +79,7 @@ function PracticeWall() {
         </button>
       </StageTools>
       <p className={ui.muted}>
-        The practice wall already has holds, including three big holds with small marker holds on them. Set
+        The demo wall already has holds, including three big holds with small marker holds on them. Set
         practice routes in the Routes tab.
       </p>
     </>

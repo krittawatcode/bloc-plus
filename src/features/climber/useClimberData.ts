@@ -11,7 +11,7 @@ export function useClimberData() {
   const comments = useComments();
   const counts = useSendCounts();
   const { session } = useSession();
-  // The practice wall is for trying things out: climbers never see it, but signed-in staff
+  // The demo wall is for trying things out: climbers never see it, but signed-in staff
   // (and everyone in demo mode) do, so staff can check the climber view of a test route.
   const showPractice = backend.kind === 'demo' || !!session?.isStaff;
   const bases = (wallId?: string) =>
@@ -22,7 +22,7 @@ export function useClimberData() {
       ? [
           {
             id: PRACTICE_WALL_ID,
-            name: backend.kind === 'demo' ? 'Practice wall' : 'Practice wall · staff only',
+            name: backend.kind === 'demo' ? 'Demo wall' : 'Demo wall · staff only',
           },
         ]
       : []),
@@ -37,7 +37,7 @@ export function useClimberData() {
     extrasOf: (id: string) => core.routes.filter((r) => r.baseId === id && !r.archived),
     commentsOf: (id: string) => (comments.data ?? []).filter((c) => c.routeId === id && !c.hidden),
     wallName: (id: string) =>
-      id === PRACTICE_WALL_ID ? 'Practice wall' : (core.walls.find((w) => w.id === id)?.name ?? 'Wall'),
+      id === PRACTICE_WALL_ID ? 'Demo wall' : (core.walls.find((w) => w.id === id)?.name ?? 'Wall'),
   };
 }
 

@@ -17,7 +17,7 @@ export function WallSelect() {
             {w.name}
           </option>
         ))}
-        <option value={PRACTICE_WALL_ID}>Practice wall</option>
+        <option value={PRACTICE_WALL_ID}>Demo wall</option>
       </select>
     </div>
   );

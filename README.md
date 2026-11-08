@@ -38,7 +38,7 @@ src/
     demoBackend.ts      In-browser implementation (localStorage + IndexedDB)
     queries.ts          TanStack Query hooks used by pages
     mappers.ts          Database rows <-> app types
-  domain/         Pure logic and types, no React or 3D: grading, routes, practice wall routes
+  domain/         Pure logic and types, no React or 3D: grading, routes, demo wall routes
   features/
     climber/      Start list, QR start page, route page with sends and comments
     staff/        Routes, route editor, walls and hold tagging, QR sheet, moderation, gym settings
@@ -48,7 +48,7 @@ src/
     detect.ts       Finds a hold's edge on a scan from a tap
     piece.ts        Cuts a hold out of a scan; reads and writes hold files
     scan.ts         Loads .glb scans, orientation, wall outline
-    practiceWall.ts Built-in practice wall
+    practiceWall.ts Built-in demo wall
     stage.tsx       React wrapper: one viewer for the whole visit
     stageContext.ts Hooks pages use: useStageScene, useViewerEvents, StageDock
   lib/            Small helpers: formatting, device preferences, photo resizing, DB types
@@ -98,7 +98,7 @@ Routes use the URL hash (`#/r/<id>`), so no rewrite rules are needed on either h
 
 To clean up after testing: open a route in **Routes** and use **Delete route** (a normal route takes its extras with it), or remove a whole wall under **Walls › Remove this wall**, which also removes its holds, routes and their comments. To take a route down for a while instead, **Archive** it. In demo mode, **Gym › Clear demo data** starts over.
 
-The built-in **Practice wall** lets staff try setting routes before any scan exists. Climbers never see it (except in demo mode).
+The built-in **Demo wall** lets staff try setting routes before any scan exists. Climbers never see it (except in demo mode).
 
 ## Scripts
 

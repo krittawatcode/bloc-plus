@@ -100,7 +100,7 @@ export function QrTab() {
         </div>
       ) : (
         <p className={ui.empty}>
-          No normal routes on your scanned walls yet. Practice wall routes don't get QR codes.
+          No normal routes on your scanned walls yet. Demo wall routes don't get QR codes.
         </p>
       )}
     </>

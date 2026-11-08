@@ -9,4 +9,4 @@ export const StaffWallContext = createContext<{ wallId: string; setWallId: (id: 
 export const useStaffWall = () => useContext(StaffWallContext);
 
 export const wallLabel = (walls: { id: string; name: string }[], id: string) =>
-  id === PRACTICE_WALL_ID ? 'Practice wall' : (walls.find((w) => w.id === id)?.name ?? 'Wall');
+  id === PRACTICE_WALL_ID ? 'Demo wall' : (walls.find((w) => w.id === id)?.name ?? 'Wall');
