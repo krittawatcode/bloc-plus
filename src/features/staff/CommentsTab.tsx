@@ -17,7 +17,7 @@ import s from './Staff.module.css';
 type Show = 'all' | 'reported' | 'hidden';
 
 /**
- * Moderation. Every comment says which route it is about; tap the route to see it on the wall.
+as * Moderation. Comments are grouped under their route; tap the route to see it on the wall.
  * Reported comments come first. Hidden comments stay here so they can come back.
  */
 export function CommentsTab() {
@@ -121,10 +121,14 @@ export function CommentsTab() {
       {list.length === 0 && (
         <p className={ui.empty}>{all.length ? 'No comments match.' : 'No comments yet.'}</p>
       )}
-      {list.map((m: Comment) => {
-        const r = route(m.routeId);
+      {groupByRoute(list).map(([routeId, group]) => {
+        const r = route(routeId);
         return (
-          <article key={m.id} className={m.hidden ? c.hiddenComment : c.comment}>
+          <section
+            key={routeId}
+            className={c.commentGroup}
+            aria-label={`Comments on ${r?.name ?? 'a removed route'}`}
+          >
             <div className={s.commentRoute}>
               <RouteTag
                 route={r}
@@ -132,7 +136,7 @@ export function CommentsTab() {
                 grading={d.settings?.grading}
                 wallName={r ? wallLabel(d.walls, r.wallId) : undefined}
                 onClick={r ? () => pick(r.id) : undefined}
-                pressed={selected === m.routeId}
+                pressed={selected === routeId}
               />
               {r && (
                 <Link to={r.type === 'base' ? `/r/${r.id}` : `/x/${r.id}`} className={ui.link}>
@@ -140,46 +144,57 @@ export function CommentsTab() {
                 </Link>
               )}
             </div>
-            <header className={c.commentHead}>
-              <strong>{m.nick}</strong>
-              <span className={`${ui.muted} ${ui.smallText}`}>{ago(m.createdAt)}</span>
-              {m.beta && <span className={ui.pillBeta}>Beta</span>}
-              {m.reported && <span className={ui.pillReported}>Reported</span>}
-              {m.hidden && <span className={`${ui.muted} ${ui.smallText}`}>Hidden</span>}
-            </header>
-            {m.body && <p>{m.body}</p>}
-            {m.photoPath && (
-              <img
-                className={c.photo}
-                src={backend.photoUrl(m.photoPath)}
-                alt={`Photo from ${m.nick}`}
-                loading="lazy"
-              />
-            )}
-            <div className={c.actions}>
-              <button
-                type="button"
-                className={ui.link}
-                onClick={() => hide.mutate({ id: m.id, hidden: !m.hidden }, { onError })}
-              >
-                {m.hidden ? 'Show again' : 'Hide'}
-              </button>
-              {m.reported && (
-                <button type="button" className={ui.link} onClick={() => clear.mutate(m.id, { onError })}>
-                  Keep, clear report
-                </button>
-              )}
-              <ConfirmButton
-                className={`${ui.link} ${ui.danger}`}
-                confirmText="Tap again to delete"
-                onConfirm={() => del.mutate(m, { onError })}
-              >
-                Delete
-              </ConfirmButton>
-            </div>
-          </article>
+            {group.map((m: Comment) => (
+              <article key={m.id} className={m.hidden ? c.hiddenComment : c.comment}>
+                <header className={c.commentHead}>
+                  <strong>{m.nick}</strong>
+                  <span className={`${ui.muted} ${ui.smallText}`}>{ago(m.createdAt)}</span>
+                  {m.beta && <span className={ui.pillBeta}>Beta</span>}
+                  {m.reported && <span className={ui.pillReported}>Reported</span>}
+                  {m.hidden && <span className={`${ui.muted} ${ui.smallText}`}>Hidden</span>}
+                </header>
+                {m.body && <p>{m.body}</p>}
+                {m.photoPath && (
+                  <img
+                    className={c.photo}
+                    src={backend.photoUrl(m.photoPath)}
+                    alt={`Photo from ${m.nick}`}
+                    loading="lazy"
+                  />
+                )}
+                <div className={c.actions}>
+                  <button
+                    type="button"
+                    className={ui.link}
+                    onClick={() => hide.mutate({ id: m.id, hidden: !m.hidden }, { onError })}
+                  >
+                    {m.hidden ? 'Show again' : 'Hide'}
+                  </button>
+                  {m.reported && (
+                    <button type="button" className={ui.link} onClick={() => clear.mutate(m.id, { onError })}>
+                      Keep, clear report
+                    </button>
+                  )}
+                  <ConfirmButton
+                    className={`${ui.link} ${ui.danger}`}
+                    confirmText="Tap again to delete"
+                    onConfirm={() => del.mutate(m, { onError })}
+                  >
+                    Delete
+                  </ConfirmButton>
+                </div>
+              </article>
+            ))}
+          </section>
         );
       })}
     </>
   );
+}
+
+/** One group per route, in the order the list is already sorted (reported and newest first). */
+function groupByRoute(list: Comment[]): [string, Comment[]][] {
+  const groups = new Map<string, Comment[]>();
+  for (const m of list) groups.set(m.routeId, [...(groups.get(m.routeId) ?? []), m]);
+  return [...groups];
 }
