@@ -210,3 +210,13 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* Staff actions under an extra-route card (the card itself previews the route). */
+.extraActions {
+  display: flex;
+  gap: 16px;
+  padding: 6px 4px 2px;
+}
+.archived > button {
+  opacity: 0.55;
+}

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { GradeBadge, Loading, TypePill } from '@/components/ui';
+import { GradeBadge, Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
-import { useCoreData, useSaveRoutes } from '@/data/queries';
-import { RouteTools } from '@/features/climber/shared';
+import { useComments, useCoreData, useSaveRoutes, useSendCounts } from '@/data/queries';
+import { ExtraRowBody, RouteTools } from '@/features/climber/shared';
 import { useGhostPref } from '@/features/climber/useClimberData';
 import { useStageScene } from '@/viewer/stageContext';
 import s from './Staff.module.css';
@@ -15,6 +15,8 @@ export function StartTab() {
   const { baseId } = useParams();
   const d = useCoreData();
   const save = useSaveRoutes();
+  const counts = useSendCounts();
+  const comments = useComments();
   const toast = useToast();
   const location = useLocation();
   const [ghost, setGhost] = useGhostPref();
@@ -73,38 +75,47 @@ export function StartTab() {
       </div>
       <h3>Extra routes from this start</h3>
       {extras.length ? (
-        <div className={s.extras}>
+        <ul className={ui.list}>
           {extras.map((x) => (
-            <div key={x.id} className={`${s.extra} ${x.archived ? s.archived : ''}`}>
+            <li key={x.id} className={x.archived ? s.archived : undefined}>
               <button
                 type="button"
-                className={s.extraName}
+                className={preview === x.id ? ui.rowSelected : ui.row}
                 aria-pressed={preview === x.id}
                 onClick={() => toggle(x.id)}
               >
-                <strong>{x.name}</strong>
-                <TypePill type={x.type} />
-                {x.archived && <span className={`${ui.muted} ${ui.smallText}`}>Archived</span>}
+                <ExtraRowBody
+                  route={x}
+                  grading={d.settings?.grading}
+                  sends={counts.data?.[x.id] ?? 0}
+                  comments={(comments.data ?? []).filter((c) => c.routeId === x.id).length}
+                />
               </button>
-              <Link to={`/staff/routes/${x.id}`} className={ui.link}>
-                Edit
-              </Link>
-              <button
-                type="button"
-                className={ui.link}
-                disabled={save.isPending}
-                onClick={() =>
-                  save.mutate([{ ...x, archived: !x.archived }], {
-                    onSuccess: () => toast(x.archived ? 'Restored.' : 'Archived. Climbers no longer see it.'),
-                    onError: (e) => toast(friendly(e)),
-                  })
-                }
-              >
-                {x.archived ? 'Restore' : 'Archive'}
-              </button>
-            </div>
+              <div className={s.extraActions}>
+                <Link to={`/staff/routes/${x.id}`} className={ui.link}>
+                  Edit
+                </Link>
+                <button
+                  type="button"
+                  className={ui.link}
+                  disabled={save.isPending}
+                  onClick={() =>
+                    save.mutate([{ ...x, archived: !x.archived }], {
+                      onSuccess: () =>
+                        toast(x.archived ? 'Restored.' : 'Archived. Climbers no longer see it.'),
+                      onError: (e) => toast(friendly(e)),
+                    })
+                  }
+                >
+                  {x.archived ? 'Restore' : 'Archive'}
+                </button>
+                <Link to={`/x/${x.id}`} className={ui.link}>
+                  Climber view
+                </Link>
+              </div>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
         <p className={ui.empty}>No extras yet. Add an elimination or a new route.</p>
       )}

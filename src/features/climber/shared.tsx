@@ -32,7 +32,8 @@ export function BaseRow({
   );
 }
 
-export function ExtraRow({
+/** The inside of an extra-route card: name, setter, type, grade and counts. Climber and staff share it. */
+export function ExtraRowBody({
   route,
   grading,
   sends,
@@ -44,7 +45,7 @@ export function ExtraRow({
   comments: number;
 }) {
   return (
-    <Link to={`/x/${route.id}`} className={ui.row}>
+    <>
       <span className={ui.grow}>
         <strong>{route.name}</strong>
         {route.setter && <span className={`${ui.muted} ${ui.smallText}`}> by {route.setter}</span>}
@@ -52,12 +53,21 @@ export function ExtraRow({
           <TypePill type={route.type} />
           <GradeBadge grading={grading} id={route.grade} />
           {route.rules[0] && <span className={`${ui.muted} ${ui.smallText}`}>{route.rules[0]}</span>}
+          {route.archived && <span className={`${ui.muted} ${ui.smallText}`}>Archived</span>}
         </span>
       </span>
       <span className={ui.stats}>
         <span>{sends} sent</span>
         <span>{plural(comments, 'comment')}</span>
       </span>
+    </>
+  );
+}
+
+export function ExtraRow(props: { route: Route; grading?: Grading; sends: number; comments: number }) {
+  return (
+    <Link to={`/x/${props.route.id}`} className={ui.row}>
+      <ExtraRowBody {...props} />
     </Link>
   );
 }
