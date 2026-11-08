@@ -22,12 +22,19 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm test
-      - run: npm run build
+      - name: Build
+        run: |
+          if [ -n "$VITE_SUPABASE_URL" ] && [ -n "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "::notice::Building with Supabase: $VITE_SUPABASE_URL"
+          else
+            echo "::warning::VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing. This build runs in DEMO mode (data stays in each browser)."
+          fi
+          npm run build
         env:
-          # Repository variables (Settings › Secrets and variables › Actions › Variables).
+          # Settings › Secrets and variables › Actions. Either a Variable or a Secret works.
           # Without them the build runs in demo mode, so the first deploy still works.
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
