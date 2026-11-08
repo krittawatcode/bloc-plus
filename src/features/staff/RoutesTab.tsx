@@ -8,6 +8,7 @@ import { useCoreData, useSaveRoutes } from '@/data/queries';
 import { PRACTICE_WALL_ID } from '@/domain/types';
 import { StageTools } from '@/viewer/stage';
 import { useStageScene, useViewer } from '@/viewer/stageContext';
+import { useGhostPref } from '@/features/climber/useClimberData';
 import { useStaffWall } from './staffWall';
 import { WallSelect } from './WallSelect';
 import { wallLabel } from './staffWall';
@@ -25,10 +26,16 @@ export function RoutesTab() {
   );
   const previewRoute = d.routes.find((r) => r.id === preview && r.wallId === wallId);
   const hasHolds = wallId === PRACTICE_WALL_ID || d.holds.some((h) => h.wallId === wallId);
+  const [ghost, setGhost] = useGhostPref();
 
+  // A previewed route shows only its holds (like the climber view); otherwise the whole wall.
   useStageScene(
-    !d.isLoading && hasHolds ? { kind: 'wall', wallId, markers: previewRoute?.holds ?? {} } : null,
-    `routes:${wallId}:${previewRoute?.id}:${d.holds.length}`,
+    d.isLoading || !hasHolds
+      ? null
+      : previewRoute
+        ? { kind: 'route', wallId, holds: previewRoute.holds, ghost }
+        : { kind: 'wall', wallId, markers: {} },
+    `routes:${wallId}:${previewRoute?.id}:${previewRoute ? ghost : ''}:${d.holds.length}`,
     d.isLoading ? 'Loading…' : 'Tag some holds on this wall first.',
   );
 
@@ -42,6 +49,11 @@ export function RoutesTab() {
         <button type="button" onClick={() => viewer?.resetView()}>
           Reset view
         </button>
+        {previewRoute && (
+          <button type="button" aria-pressed={ghost} onClick={() => setGhost(!ghost)}>
+            Outline {ghost ? 'on' : 'off'}
+          </button>
+        )}
       </StageTools>
       <WallSelect />
       {!hasHolds ? (
