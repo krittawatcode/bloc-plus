@@ -10,7 +10,7 @@ import { useGhostPref } from '@/features/climber/useClimberData';
 import { useStageScene } from '@/viewer/stageContext';
 import s from './Staff.module.css';
 
-/** One normal route for staff: only its holds in 3D, plus its extras to preview, add and manage. */
+/** One normal route for staff: only its holds in 3D, plus its extras to add, edit and archive. */
 export function StartTab() {
   const { baseId } = useParams();
   const d = useCoreData();
@@ -20,9 +20,7 @@ export function StartTab() {
   const toast = useToast();
   const location = useLocation();
   const [ghost, setGhost] = useGhostPref();
-  const [preview, setPreview] = useState<string | null>(
-    (location.state as { preview?: string } | null)?.preview ?? null,
-  );
+  const [preview] = useState<string | null>((location.state as { preview?: string } | null)?.preview ?? null);
   const base = d.routes.find((r) => r.id === baseId && r.type === 'base');
   const extras = d.routes.filter((r) => r.baseId === base?.id);
   // The wall shows the normal route, or the extra being previewed.
@@ -45,8 +43,6 @@ export function StartTab() {
       </>
     );
 
-  const toggle = (id: string) => setPreview((p) => (p === id ? null : id));
-
   return (
     <>
       <RouteTools ghost={ghost} onGhost={setGhost} />
@@ -61,8 +57,8 @@ export function StartTab() {
         </h2>
         <p className={ui.muted}>
           {shown === base
-            ? `The wall shows the normal ${base.name} route. Tap an extra to see only its holds.`
-            : `The wall shows ${shown?.name}. Tap it again to go back to ${base.name}.`}
+            ? `The wall shows the normal ${base.name} route. Tap an extra to edit it.`
+            : `The wall shows ${shown?.name}.`}
         </p>
       </div>
       <div className={ui.actions}>
@@ -78,23 +74,15 @@ export function StartTab() {
         <ul className={ui.list}>
           {extras.map((x) => (
             <li key={x.id} className={x.archived ? s.archived : undefined}>
-              <button
-                type="button"
-                className={preview === x.id ? ui.rowSelected : ui.row}
-                aria-pressed={preview === x.id}
-                onClick={() => toggle(x.id)}
-              >
+              <Link to={`/staff/routes/${x.id}`} className={ui.row} aria-label={`Edit ${x.name}`}>
                 <ExtraRowBody
                   route={x}
                   grading={d.settings?.grading}
                   sends={counts.data?.[x.id] ?? 0}
                   comments={(comments.data ?? []).filter((c) => c.routeId === x.id).length}
                 />
-              </button>
+              </Link>
               <div className={s.extraActions}>
-                <Link to={`/staff/routes/${x.id}`} className={ui.link}>
-                  Edit
-                </Link>
                 <button
                   type="button"
                   className={ui.link}
