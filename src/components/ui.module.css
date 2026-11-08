@@ -1,0 +1,351 @@
+/* Shared building blocks used across climber and staff screens. */
+.btn {
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: center;
+  min-height: 44px;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.small {
+  padding: 6px 11px;
+  font-size: 13.5px;
+  min-height: 36px;
+}
+.link {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.link:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.danger {
+  color: var(--off);
+}
+.back {
+  composes: link;
+  align-self: flex-start;
+  font-size: 15px;
+  text-decoration: none;
+}
+.back::before {
+  content: '‹ ';
+}
+
+.seg {
+  display: flex;
+  background: var(--sunk);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.seg button,
+.seg a {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--muted);
+  text-align: center;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+}
+.seg [aria-pressed='true'],
+.seg [aria-current='page'] {
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.segInline {
+  composes: seg;
+  display: inline-flex;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  font-size: 13px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--sunk);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+}
+span.chip {
+  cursor: default;
+}
+.chip[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-size: 13px;
+  font-weight: 700;
+}
+.input {
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  width: 100%;
+  font-size: 16px; /* 16px stops iOS zooming into inputs */
+}
+textarea.input {
+  resize: vertical;
+}
+.check {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.muted {
+  color: var(--muted);
+}
+.smallText {
+  font-size: 13px;
+}
+.eyebrow {
+  font-size: 11.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.note {
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 9px 11px;
+}
+.error {
+  composes: note;
+  color: var(--off);
+}
+.empty {
+  color: var(--muted);
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.frow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tally {
+  font-family: var(--f-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.desc {
+  white-space: pre-line;
+  border-left: 3px solid var(--accent);
+  padding: 2px 0 2px 12px;
+  max-width: 65ch;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+}
+.row:hover {
+  border-color: var(--accent);
+}
+.rowSelected {
+  composes: row;
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.tape {
+  width: 10px;
+  align-self: stretch;
+  min-height: 34px;
+  border-radius: 3px;
+  flex: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.tapeInline {
+  display: inline-block;
+  width: 9px;
+  height: 0.9em;
+  border-radius: 2px;
+  margin-right: 8px;
+  vertical-align: -1px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.stats {
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  white-space: nowrap;
+}
+.pillElim {
+  composes: pill;
+  color: var(--off);
+}
+.pillNew {
+  composes: pill;
+  color: var(--accent);
+}
+.pillBase {
+  composes: pill;
+  color: var(--muted);
+}
+.pillBeta {
+  composes: pill;
+  color: var(--top);
+}
+.pillReported {
+  composes: pill;
+  color: var(--off);
+}
+
+.grade {
+  font-family: var(--f-mono);
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--sunk);
+  color: var(--fg);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.gradeSpecial {
+  composes: grade;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--top);
+  font-family: var(--f-body);
+}
+.gradeNone {
+  composes: grade;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--f-body);
+  font-weight: 400;
+}
+.swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+.busy {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+}
+.busy::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+  flex: none;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

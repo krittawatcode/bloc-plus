@@ -1,0 +1,129 @@
+/* Layout: the 3D wall is the stage; the working panel sits beside it on desktop and below it on phones. */
+.page {
+  padding-left: var(--gutter);
+  padding-right: var(--gutter-r);
+}
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 12px;
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.logo {
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: 23px;
+  letter-spacing: -0.015em;
+}
+.logo i {
+  font-style: normal;
+  color: var(--brand-cyan);
+}
+.gym {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.modes {
+  flex: none;
+}
+.app {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 24px;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.panel > * {
+  flex-shrink: 0;
+}
+
+@media (max-width: 899px) {
+  .bar {
+    padding-block: 8px;
+  }
+  .brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+  .logo {
+    font-size: 20px;
+  }
+  .gym {
+    font-size: 10.5px;
+    max-width: 52vw;
+  }
+  .panel {
+    padding: 16px;
+  }
+}
+@media (max-width: 380px) {
+  .bar {
+    gap: 8px;
+  }
+  .modes a {
+    padding: 6px 11px;
+    font-size: 13px;
+  }
+}
+@media (min-width: 900px) {
+  .page {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .app {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) 390px;
+    padding-bottom: 16px;
+  }
+  .panel {
+    overflow-y: auto;
+    min-height: 0;
+  }
+}
+@media print {
+  .bar {
+    display: none;
+  }
+  .page {
+    height: auto;
+    display: block;
+  }
+  .app {
+    display: block;
+  }
+  .app > section {
+    display: none;
+  }
+  .panel {
+    border: 0;
+    padding: 0;
+  }
+}

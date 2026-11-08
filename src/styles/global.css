@@ -1,0 +1,137 @@
+/* Design tokens and base styles. Component styles live next to components as CSS Modules. */
+:root {
+  --bg: #f4f3f9;
+  --surface: #ffffff;
+  --sunk: #e9e7f2;
+  --fg: #15121f;
+  --muted: #5c5770;
+  --line: #dcd9e7;
+  --accent: #6f35e0;
+  --accent-ink: #ffffff;
+  --brand-cyan: #00a9d6;
+  --stage: #e2e0ec;
+  --wall: #d4cbba;
+  --tnut: #6f6758;
+  --mat: #3b4341;
+  --start: #1c9a52;
+  --top: #c78900;
+  --foot: #2c68e0;
+  --off: #d73636;
+  --hand: #1d2422;
+
+  --f-display: 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif;
+  --f-body: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --radius: 14px;
+  --gutter: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0e0c16;
+    --surface: #18152a;
+    --sunk: #221e36;
+    --fg: #eceaf5;
+    --muted: #9e99b3;
+    --line: #2d2944;
+    --accent: #a07bff;
+    --accent-ink: #150833;
+    --brand-cyan: #22d3ff;
+    --stage: #09080f;
+    --wall: #6b6457;
+    --tnut: #2b2822;
+    --mat: #1e2423;
+    --start: #3ad17a;
+    --top: #f2b62c;
+    --foot: #6f9bff;
+    --off: #ff6464;
+    --hand: #f2f5f4;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #0e0c16;
+  --surface: #18152a;
+  --sunk: #221e36;
+  --fg: #eceaf5;
+  --muted: #9e99b3;
+  --line: #2d2944;
+  --accent: #a07bff;
+  --accent-ink: #150833;
+  --brand-cyan: #22d3ff;
+  --stage: #09080f;
+  --wall: #6b6457;
+  --tnut: #2b2822;
+  --mat: #1e2423;
+  --start: #3ad17a;
+  --top: #f2b62c;
+  --foot: #6f9bff;
+  --off: #ff6464;
+  --hand: #f2f5f4;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+p,
+h1,
+h2,
+h3,
+figure {
+  margin: 0;
+}
+h2 {
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: 25px;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+h3 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 17px;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+img {
+  max-width: 100%;
+}
+[hidden] {
+  display: none !important;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

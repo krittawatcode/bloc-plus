@@ -1,0 +1,45 @@
+import { uid } from './format';
+
+/**
+ * Small things this phone remembers: an anonymous id for counting sends once, the climber's nickname,
+ * routes they sent, and the wall staff last worked on. Nothing here is important if it is lost.
+ */
+interface Prefs {
+  device: string;
+  nick: string;
+  sent: Record<string, true>;
+  staffWall: string | null;
+  ghost: boolean;
+}
+
+const KEY = 'blocplus-device';
+
+function read(): Prefs {
+  let p: Partial<Prefs>;
+  try {
+    p = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Prefs>;
+  } catch {
+    p = {};
+  }
+  return {
+    device: p.device ?? `d${uid()}${uid()}`,
+    nick: p.nick ?? '',
+    sent: p.sent ?? {},
+    staffWall: p.staffWall ?? null,
+    ghost: p.ghost ?? true,
+  };
+}
+
+let prefs = read();
+
+export const device = {
+  get: () => prefs,
+  set(patch: Partial<Prefs>) {
+    prefs = { ...prefs, ...patch };
+    try {
+      localStorage.setItem(KEY, JSON.stringify(prefs));
+    } catch {
+      /* private mode or storage full: keep it in memory for this visit */
+    }
+  },
+};
