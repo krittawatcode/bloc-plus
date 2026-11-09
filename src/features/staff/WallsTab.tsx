@@ -236,7 +236,8 @@ function ScanDrop({ busy, onFile }: { busy: string | null; onFile: (f: File) => 
       />
       <strong>Choose the scan (.glb)</strong>
       <span className={`${ui.muted} ${ui.smallText}`}>
-        Export from Polycam or KIRI Engine as GLB, without Draco compression. Up to 50 MB.
+        Polycam: export as GLTF (it saves a .glb). KIRI Engine: export as GLB. No Draco compression. Up to 50
+        MB.
       </span>
     </label>
   );
