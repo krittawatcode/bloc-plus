@@ -282,7 +282,7 @@ export function practiceWallObjects(c: PracticeColours): Object3D[] {
 }
 
 /** A faint see-through version of the practice wall for climber views. */
-export function practiceGhostObjects(fg: string): Object3D[] {
+export function practiceGhostObjects(fg: string, strength = 1): Object3D[] {
   const g = wallGeometry(18, 12);
   return [
     new Mesh(
@@ -291,7 +291,7 @@ export function practiceGhostObjects(fg: string): Object3D[] {
         color: fg,
         wireframe: true,
         transparent: true,
-        opacity: 0.16,
+        opacity: Math.min(1, 0.16 * strength),
         depthWrite: false,
       }),
     ),
@@ -300,7 +300,7 @@ export function practiceGhostObjects(fg: string): Object3D[] {
       new MeshBasicMaterial({
         color: fg,
         transparent: true,
-        opacity: 0.045,
+        opacity: Math.min(1, 0.045 * strength),
         side: DoubleSide,
         depthWrite: false,
       }),

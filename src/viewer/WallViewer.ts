@@ -1,4 +1,5 @@
 import {
+  BackSide,
   Box3,
   BoxGeometry,
   BufferGeometry,
@@ -6,6 +7,7 @@ import {
   DirectionalLight,
   DoubleSide,
   Group,
+  Matrix4,
   HemisphereLight,
   type Intersection,
   type Material,
@@ -407,6 +409,16 @@ export class WallViewer {
     this.newScene();
     this.wallId = wallId;
     const fg = this.colour('--fg');
+    // Dark themes need a stronger wall outline and a rim around route holds to stay readable.
+    const outline = parseFloat(this.theme.css('--outline-strength')) || 1;
+    const haloOpacity = parseFloat(this.theme.css('--halo-opacity')) || 0;
+    const haloMat = new MeshBasicMaterial({
+      color: this.colour('--halo'),
+      side: BackSide,
+      transparent: true,
+      opacity: haloOpacity,
+      depthWrite: false,
+    });
     const box = new Box3();
     if (wallId === PRACTICE_WALL_ID) {
       if (spec.kind === 'wall') {
@@ -418,9 +430,10 @@ export class WallViewer {
         }))
           this.scene.add(o);
         box.set(PRACTICE_BOX.min.clone(), PRACTICE_BOX.max.clone());
-      } else if (spec.ghost) for (const o of practiceGhostObjects(fg)) this.scene.add(o);
+      } else if (spec.ghost) for (const o of practiceGhostObjects(fg, outline)) this.scene.add(o);
     } else if (ghost) {
       (ghost.material as PointsMaterial).color.set(fg);
+      (ghost.material as PointsMaterial).opacity = Math.min(1, 0.35 * outline);
       this.scene.add(ghost);
       if (spec.kind === 'wall') box.copy(ghost.geometry.boundingBox!);
     }
@@ -445,6 +458,7 @@ export class WallViewer {
       this.scene.add(m);
       this.pickables.push(m);
       routeBox.expandByObject(m);
+      if (routeHolds && routeHolds[id] !== 'off' && haloOpacity > 0) this.scene.add(halo(m, haloMat));
       shown++;
     }
     this.pickMode = 'hold';
@@ -677,4 +691,29 @@ export class WallViewer {
     id ??= this.nearestHold(x, y, TAP_PX);
     if (id) this.events.holdTap?.(id);
   }
+}
+
+/**
+ * A slightly larger copy of a hold, drawn from the inside only, so it shows as a rim around the hold.
+ * Keeps dark holds visible on a dark stage (and pale holds on a pale one).
+ */
+function halo(hold: Object3D, mat: Material): Object3D {
+  hold.updateMatrixWorld();
+  const box = new Box3().setFromObject(hold);
+  const c = box.getCenter(new Vector3());
+  const r = box.getSize(new Vector3()).length() / 2 || 0.05;
+  // About a 1.2 cm rim whatever the hold size, within sensible limits.
+  const k = Math.min(1.5, Math.max(1.06, 1 + 0.012 / r));
+  const h = hold.clone();
+  h.traverse((o) => {
+    if ((o as Mesh).isMesh) (o as Mesh).material = mat;
+    o.userData = { noCount: true };
+  });
+  h.matrixAutoUpdate = false;
+  h.matrix
+    .makeTranslation(c.x, c.y, c.z)
+    .multiply(new Matrix4().makeScale(k, k, k))
+    .multiply(new Matrix4().makeTranslation(-c.x, -c.y, -c.z))
+    .multiply(hold.matrixWorld);
+  return h;
 }
