@@ -137,7 +137,8 @@ export class DemoBackend implements Backend {
     return structuredClone(this.t.holds);
   }
   async listRoutes() {
-    return structuredClone(this.t.routes);
+    // Routes saved before start hands existed have none.
+    return structuredClone(this.t.routes.map((r) => ({ ...r, hands: r.hands ?? {} })));
   }
   async listComments() {
     const staff = !!this.session();

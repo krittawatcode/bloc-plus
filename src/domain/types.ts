@@ -8,6 +8,9 @@ export type Role = 'start' | 'hand' | 'top' | 'foot' | 'off';
 /** Route holds: hold id → role. Marker holds are never stored here; they follow their parent. */
 export type HoldMap = Record<string, Role>;
 
+/** Which hand goes on a start hold. A start hold with no entry is "any hand". */
+export type StartHand = 'left' | 'right' | 'both';
+
 export type RouteType = 'base' | 'elim' | 'new';
 
 export interface GradeLevel {
@@ -86,6 +89,8 @@ export interface Route {
   /** Tags on the route (stored in the `rules` column). */
   rules: string[];
   holds: HoldMap;
+  /** Start holds only: which hand goes where (stored in the `start_hands` column). */
+  hands: Record<string, StartHand>;
   setter: string;
   archived: boolean;
   createdAt: string;

@@ -64,6 +64,7 @@ export const routeFromRow = (r: T['routes']['Row']): Route => ({
   description: r.description ?? '',
   rules: (r.rules as string[]) ?? [],
   holds: (r.holds as HoldMap) ?? {},
+  hands: (r.start_hands as Route['hands'] | null) ?? {},
   setter: r.setter ?? '',
   archived: r.archived,
   createdAt: r.created_at,
@@ -81,6 +82,7 @@ export const routeToRow = (r: Route): T['routes']['Insert'] => ({
   description: r.description || null,
   rules: r.rules,
   holds: r.holds,
+  start_hands: r.hands,
   setter: r.setter || null,
   archived: r.archived,
 });

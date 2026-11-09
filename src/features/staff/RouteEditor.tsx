@@ -8,8 +8,16 @@ import { friendly } from '@/data/backend';
 import { useSession } from '@/data/context';
 import { useComments, useCoreData, useDeleteRoutes, useSaveRoutes } from '@/data/queries';
 import { defaultGradeId, gradeLabel, PRESETS } from '@/domain/grading';
-import { TAPE_COLORS, parentOf, startingHolds, tally, toggleHold, validateRoute } from '@/domain/routes';
-import type { HoldKind, Role, Route, RouteType } from '@/domain/types';
+import {
+  HAND_NAME,
+  TAPE_COLORS,
+  parentOf,
+  pickHold,
+  startingHolds,
+  tally,
+  validateRoute,
+} from '@/domain/routes';
+import type { HoldKind, Role, Route, RouteType, StartHand } from '@/domain/types';
 import { plural, uid } from '@/lib/format';
 import { holdsOfWall } from '@/viewer/practiceWall';
 import { StageDock, StageTools } from '@/viewer/stage';
@@ -47,6 +55,7 @@ export function RouteEditor() {
   const nameRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<Route | null>(null);
   const [role, setRole] = useState<Exclude<Role, 'off'>>('start');
+  const [hand, setHand] = useState<StartHand | 'any'>('any');
 
   // Build the draft once the data is here.
   useEffect(() => {
@@ -75,6 +84,8 @@ export function RouteEditor() {
         description: '',
         rules: [],
         holds: startingHolds(base, params.type),
+        // The start holds come from the normal route, with their hands.
+        hands: { ...base.hands },
         setter: me,
         archived: false,
         createdAt: '',
@@ -94,6 +105,7 @@ export function RouteEditor() {
       description: '',
       rules: [],
       holds: {},
+      hands: {},
       setter: '',
       archived: false,
       createdAt: '',
@@ -133,16 +145,17 @@ export function RouteEditor() {
   );
   // Update the rings without moving the camera.
   useEffect(() => {
-    if (draft) viewer?.setMarkers(draft.holds);
+    if (draft) viewer?.setMarkers(draft.holds, draft.hands);
   }, [viewer, draft, data.holds]);
 
-  const pick = (id: string) => {
+  const apply = (target: string) => {
     if (!draft) return;
-    const target = parentOf(holdsOfWall(draft.wallId, data.holds), id);
-    const next = toggleHold(draft, base, target, role);
+    const next = pickHold(draft, base, target, role, hand);
     if (typeof next === 'string') toast(next);
-    else setDraft({ ...draft, holds: next });
+    else setDraft({ ...draft, ...next });
   };
+  // A marker hold stands for the big hold under it, so that one goes into the route.
+  const pick = (id: string) => draft && apply(parentOf(holdsOfWall(draft.wallId, data.holds), id));
   useViewerEvents(
     {
       holdTap: pick,
@@ -157,10 +170,7 @@ export function RouteEditor() {
     finder.save().then(
       (h) => {
         if (!h || !draft) return;
-        // A marker stands for the big hold under it, so that one goes into the route.
-        const target = h.onId ?? h.id;
-        const next = toggleHold(draft, base, target, role);
-        if (typeof next !== 'string') setDraft({ ...draft, holds: next });
+        apply(h.onId ?? h.id);
       },
       (e: unknown) => toast(friendly(e)),
     );
@@ -270,20 +280,31 @@ export function RouteEditor() {
             </div>
           </>
         ) : draft.type !== 'elim' ? (
-          <div className={d.seg} role="group" aria-label="Role to place">
-            {(Object.keys(SHORT_ROLE) as (keyof typeof SHORT_ROLE)[]).map((r) => (
-              <button
-                key={r}
-                type="button"
-                aria-pressed={role === r}
-                onClick={() => setRole(r)}
-                data-role={r}
-              >
-                <b className={d.roleDot} style={{ borderColor: `var(${ROLE_VAR[r]})` }} />
-                {SHORT_ROLE[r]}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className={d.seg} role="group" aria-label="Role to place">
+              {(Object.keys(SHORT_ROLE) as (keyof typeof SHORT_ROLE)[]).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  aria-pressed={role === r}
+                  onClick={() => setRole(r)}
+                  data-role={r}
+                >
+                  <b className={d.roleDot} style={{ borderColor: `var(${ROLE_VAR[r]})` }} />
+                  {SHORT_ROLE[r]}
+                </button>
+              ))}
+            </div>
+            {role === 'start' && (
+              <div className={d.seg} role="group" aria-label="Which hand on the start hold">
+                {(Object.keys(HAND_NAME) as (StartHand | 'any')[]).map((h) => (
+                  <button key={h} type="button" aria-pressed={hand === h} onClick={() => setHand(h)}>
+                    {h === 'any' ? 'Any hand' : HAND_NAME[h]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <p className={d.msg}>Tap a {base?.name} hold to cross it out. Tap again to bring it back.</p>
         )}
@@ -311,7 +332,7 @@ export function RouteEditor() {
         {draft.type === 'elim'
           ? `Tap a ${base?.name} hold on the wall to cross it out. Tap it again to bring it back.`
           : onScan
-            ? 'Pick Start, Hand, Top or Feet, then tap a hold on the wall. The app finds its edge: check it and tap Add. Tap a hold in the route again to remove it. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" tag.'
+            ? 'Pick Start, Hand, Top or Feet, then tap a hold on the wall. For a start hold, also pick the hand: Left, Right, Both (both hands on one hold) or Any. The app finds its edge: check it and tap Add. Tap a hold in the route again to remove it. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" tag.'
             : 'Pick Start, Hand or Top on the wall view, then tap holds. Tap a hold again to remove it. Tapping a marker hold selects the big hold under it too. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" tag.'}
       </p>
 

@@ -1,4 +1,4 @@
-import type { Hold, HoldMap, Role, Route, RouteType } from './types';
+import type { Hold, HoldMap, Role, Route, RouteType, StartHand } from './types';
 
 export const ROLE_NAME: Record<Role | 'tag' | 'marker', string> = {
   start: 'Start',
@@ -120,6 +120,59 @@ export function validateRoute(route: Pick<Route, 'type' | 'holds' | 'name'>): st
 export function startingHolds(base: Route, type: RouteType): HoldMap {
   if (type === 'elim') return { ...base.holds };
   return Object.fromEntries(Object.entries(base.holds).filter(([, r]) => r === 'start'));
+}
+
+/** Label on a start hold in 3D. */
+export const START_LABEL: Record<StartHand | 'any', string> = {
+  any: 'START',
+  left: 'START L',
+  right: 'START R',
+  both: 'START L+R',
+};
+
+/** Short button names for picking the hand on a start hold. */
+export const HAND_NAME: Record<StartHand | 'any', string> = {
+  any: 'Any',
+  left: 'Left',
+  right: 'Right',
+  both: 'Both',
+};
+
+/** How to start, for climbers. Null when no start hold says which hand. */
+export function startNote(route: Pick<Route, 'holds' | 'hands'>): string | null {
+  const hands = Object.entries(route.hands ?? {})
+    .filter(([id]) => route.holds[id] === 'start')
+    .map(([, h]) => h);
+  if (!hands.length) return null;
+  if (hands.includes('both')) return 'Start: both hands on the START L+R hold';
+  if (hands.includes('left') && hands.includes('right'))
+    return 'Start: left hand on START L, right hand on START R';
+  return `Start: ${hands[0]} hand on the START ${hands[0] === 'left' ? 'L' : 'R'} hold`;
+}
+
+/**
+ * Put a hold in a route (or take it out) with the chosen role, and keep start hands in step.
+ * Tapping a start hold again with a different hand changes the hand instead of removing the hold.
+ */
+export function pickHold(
+  route: Pick<Route, 'type' | 'holds' | 'hands'>,
+  base: Route | undefined,
+  id: string,
+  role: Role,
+  hand: StartHand | 'any',
+): Pick<Route, 'holds' | 'hands'> | string {
+  const hands = { ...(route.hands ?? {}) };
+  const want = hand === 'any' ? undefined : hand;
+  if (route.type !== 'elim' && role === 'start' && route.holds[id] === 'start' && hands[id] !== want) {
+    if (want) hands[id] = want;
+    else delete hands[id];
+    return { holds: route.holds, hands };
+  }
+  const holds = toggleHold(route, base, id, role);
+  if (typeof holds === 'string') return holds;
+  if (holds[id] === 'start' && route.type !== 'elim' && want) hands[id] = want;
+  else if (holds[id] !== 'start') delete hands[id];
+  return { holds, hands };
 }
 
 export const startsOf = (routes: Route[]): HoldMap => {

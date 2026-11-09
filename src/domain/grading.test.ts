@@ -13,6 +13,7 @@ const route = (id: string, grade: string): Route => ({
   section: '',
   description: '',
   rules: [],
+  hands: {},
   holds: {},
   setter: '',
   archived: false,

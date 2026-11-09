@@ -109,6 +109,7 @@ export type Database = {
           description: string | null;
           rules: Json;
           holds: Json;
+          start_hands: Json;
           setter: string | null;
           archived: boolean;
           created_at: string;
@@ -125,6 +126,7 @@ export type Database = {
           description?: string | null;
           rules?: Json;
           holds?: Json;
+          start_hands?: Json;
           setter?: string | null;
           archived?: boolean;
           created_at?: string;
@@ -141,6 +143,7 @@ export type Database = {
           description?: string | null;
           rules?: Json;
           holds?: Json;
+          start_hands?: Json;
           setter?: string | null;
           archived?: boolean;
           created_at?: string;

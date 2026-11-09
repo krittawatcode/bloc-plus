@@ -26,7 +26,7 @@ export function StartTab() {
   const shown = extras.find((x) => x.id === preview) ?? base;
 
   useStageScene(
-    shown ? { kind: 'route', wallId: shown.wallId, holds: shown.holds } : null,
+    shown ? { kind: 'route', wallId: shown.wallId, holds: shown.holds, hands: shown.hands } : null,
     `staff-start:${shown?.id}:${d.holds.length}`,
     d.isLoading ? 'Loading…' : 'This route no longer exists.',
   );

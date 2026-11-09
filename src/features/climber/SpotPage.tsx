@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { GradeBadge, Loading } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
+import { startNote } from '@/domain/routes';
 import { useStageScene } from '@/viewer/stageContext';
 import rs from './RoutePage.module.css';
 import { CommentItem } from './CommentItem';
@@ -14,7 +15,7 @@ export function SpotPage() {
   const base = d.route(baseId);
 
   useStageScene(
-    base ? { kind: 'route', wallId: base.wallId, holds: base.holds } : null,
+    base ? { kind: 'route', wallId: base.wallId, holds: base.holds, hands: base.hands } : null,
     `spot:${base?.id}:${d.holds.length}`,
     d.isLoading ? 'Loading…' : 'This start is no longer here.',
   );
@@ -53,6 +54,11 @@ export function SpotPage() {
         </p>
       </div>
       {base.description && <p className={ui.desc}>{base.description}</p>}
+      {startNote(base) && (
+        <div className={ui.chips}>
+          <span className={ui.chip}>{startNote(base)}</span>
+        </div>
+      )}
       <h3>Extra routes from this start</h3>
       <ul className={ui.list}>
         {extras.length ? (

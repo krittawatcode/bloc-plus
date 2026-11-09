@@ -5,7 +5,7 @@ import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
 import { useRateRoute, useToggleSend } from '@/data/queries';
-import { feetNote, markersOf, STRICT_FEET, TYPE_NAME } from '@/domain/routes';
+import { feetNote, startNote, markersOf, STRICT_FEET, TYPE_NAME } from '@/domain/routes';
 import type { RatingStats } from '@/domain/types';
 import { device } from '@/lib/device';
 import { plural } from '@/lib/format';
@@ -24,7 +24,9 @@ export function RoutePage() {
   const base = route?.baseId ? d.route(route.baseId) : undefined;
 
   useStageScene(
-    route && !route.archived ? { kind: 'route', wallId: route.wallId, holds: route.holds } : null,
+    route && !route.archived
+      ? { kind: 'route', wallId: route.wallId, holds: route.holds, hands: route.hands }
+      : null,
     `route:${route?.id}:${d.holds.length}`,
     d.isLoading ? 'Loading…' : 'This route has been taken down.',
   );
@@ -64,6 +66,7 @@ export function RoutePage() {
       </div>
       {route.description && <p className={ui.desc}>{route.description}</p>}
       <div className={ui.chips}>
+        {startNote(route) && <span className={ui.chip}>{startNote(route)}</span>}
         <span className={ui.chip}>{feetNote(route)}</span>
         {route.rules
           .filter((r) => r !== STRICT_FEET)

@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { GradeBadge, TypePill } from '@/components/ui';
 import { ui } from '@/components/uiStyles';
 import type { Grading, RatingStats, Route } from '@/domain/types';
+import { device } from '@/lib/device';
 import { plural } from '@/lib/format';
 import { StageTools } from '@/viewer/stage';
 import { useViewer } from '@/viewer/stageContext';
@@ -85,13 +87,34 @@ export function ExtraRow(props: {
   );
 }
 
-/** Reset view button for route views. */
+/** Reset view, and a switch to hide the rings so the holds can be seen with nothing in the way. */
 export function RouteTools() {
   const viewer = useViewer();
+  const [rings, setRings] = useState(device.get().rings);
+  useEffect(() => {
+    viewer?.setMarkersShown(rings);
+  }, [viewer, rings]);
+  // Other screens (like the route editor) always need the rings.
+  useEffect(
+    () => () => {
+      viewer?.setMarkersShown(true);
+    },
+    [viewer],
+  );
   return (
     <StageTools>
       <button type="button" onClick={() => viewer?.resetView()}>
         Reset view
+      </button>
+      <button
+        type="button"
+        aria-pressed={rings}
+        onClick={() => {
+          device.set({ rings: !rings });
+          setRings(!rings);
+        }}
+      >
+        Rings {rings ? 'on' : 'off'}
       </button>
     </StageTools>
   );

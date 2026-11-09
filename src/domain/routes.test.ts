@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   cleanTag,
+  pickHold,
+  startNote,
   feetNote,
   parentOf,
   startingHolds,
@@ -35,6 +37,7 @@ const base: Route = {
   section: '',
   description: '',
   rules: [],
+  hands: {},
   holds: { a: 'start', jug: 'hand', b: 'top' },
   setter: '',
   archived: false,
@@ -114,5 +117,35 @@ describe('tags', () => {
       STRICT_FEET,
       'Old tag',
     ]);
+  });
+});
+
+describe('start hands', () => {
+  const r = { type: 'base' as const, holds: {}, hands: {} };
+  it('puts a start hold in with its hand, and changes the hand on a second tap', () => {
+    const a = pickHold(r, undefined, 's1', 'start', 'left');
+    expect(a).toEqual({ holds: { s1: 'start' }, hands: { s1: 'left' } });
+    const b = pickHold({ ...r, ...(a as object) }, undefined, 's1', 'start', 'both');
+    expect(b).toEqual({ holds: { s1: 'start' }, hands: { s1: 'both' } });
+    // Same hand again: the hold comes out, and so does its hand.
+    const c = pickHold({ ...r, ...(b as object) }, undefined, 's1', 'start', 'both');
+    expect(c).toEqual({ holds: {}, hands: {} });
+  });
+  it('drops the hand when a start hold becomes another role', () => {
+    const a = pickHold(
+      { ...r, holds: { s1: 'start' }, hands: { s1: 'right' } },
+      undefined,
+      's1',
+      'hand',
+      'any',
+    );
+    expect(a).toEqual({ holds: { s1: 'hand' }, hands: {} });
+  });
+  it('tells climbers how to start', () => {
+    expect(startNote({ holds: { a: 'start' }, hands: {} })).toBeNull();
+    expect(startNote({ holds: { a: 'start' }, hands: { a: 'both' } })).toMatch(/both hands/);
+    expect(startNote({ holds: { a: 'start', b: 'start' }, hands: { a: 'left', b: 'right' } })).toMatch(
+      /left hand on START L, right hand on START R/,
+    );
   });
 });

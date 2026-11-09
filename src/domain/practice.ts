@@ -20,6 +20,7 @@ const r = (
   description: '',
   rules: [],
   holds,
+  hands: {},
   setter: '',
   archived: false,
   createdAt: '2026-11-08T00:00:00.000Z',

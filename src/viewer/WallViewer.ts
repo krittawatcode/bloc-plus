@@ -29,9 +29,9 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import type { Hold, HoldMap, Role } from '@/domain/types';
+import type { Hold, HoldMap, Role, StartHand } from '@/domain/types';
 import { PRACTICE_WALL_ID } from '@/domain/types';
-import { withMarkers } from '@/domain/routes';
+import { START_LABEL, withMarkers } from '@/domain/routes';
 import { plural } from '@/lib/format';
 import type { LoadedScan } from './scan';
 import { gridFromPoints, type GridWall } from './gridWall';
@@ -52,8 +52,8 @@ export interface HoldSource {
 export type SceneSpec =
   /** A whole wall with its tagged holds. Taps pick holds. */
   | { kind: 'wall'; wallId: string; markers: MarkerMap; holdIds?: string[] }
-  /** One route: its holds ringed on the real wall. */
-  | { kind: 'route'; wallId: string; holds: HoldMap }
+  /** One route: its holds ringed on the real wall. `hands` says which hand goes on each start hold. */
+  | { kind: 'route'; wallId: string; holds: HoldMap; hands?: Record<string, StartHand> }
   /** The full scan, for tagging. Taps hit the scan surface. */
   | { kind: 'scan'; wallId: string; scan: LoadedScan; markers: MarkerMap };
 
@@ -508,7 +508,7 @@ export class WallViewer {
         .expandByVector(new Vector3(Math.max(0, (1.8 - s.x) / 2), Math.max(0, (1.8 - s.y) / 2), 0))
         .expandByScalar(0.15);
       this.fit(routeBox, 0.42);
-      this.setMarkers(spec.holds, true);
+      this.setMarkers(spec.holds, spec.hands);
       this.status(
         `${shown} of ${this.holdsOf(wallId).length} holds loaded · ${this.countTris().toLocaleString('en-US')} triangles${wallId === PRACTICE_WALL_ID ? '' : ' · loading wall…'}`,
       );
@@ -583,7 +583,9 @@ export class WallViewer {
     x.roundRect(4, 4, 248, 88, 44);
     x.fill();
     x.fillStyle = dark ? '#1A1300' : '#FFFFFF';
-    x.font = '700 50px system-ui, sans-serif';
+    let size = 50;
+    do x.font = `700 ${size}px system-ui, sans-serif`;
+    while (x.measureText(text).width > 220 && (size -= 2) > 24);
     x.textAlign = 'center';
     x.textBaseline = 'middle';
     x.fillText(text, 128, 52);
@@ -595,14 +597,23 @@ export class WallViewer {
     return s;
   }
 
-  setMarkers(map: MarkerMap, hideHand = false) {
+  /** Rings and labels can be turned off to see the holds without anything in the way. */
+  private markersShown = true;
+
+  setMarkersShown(on: boolean) {
+    this.markersShown = on;
+    this.markerGroup.visible = on;
+    this.render();
+  }
+
+  setMarkers(map: MarkerMap, hands: Record<string, StartHand> = {}) {
     this.scene.remove(this.markerGroup);
     this.markerGroup = new Group();
+    this.markerGroup.visible = this.markersShown;
     this.scene.add(this.markerGroup);
     const roles = new Set<MarkerRole>();
     const practice = this.wallId === PRACTICE_WALL_ID;
     for (const [id, role] of Object.entries(map)) {
-      if (hideHand && role === 'hand') continue;
       const f = this.frame(id);
       if (!f) continue;
       roles.add(role);
@@ -632,7 +643,7 @@ export class WallViewer {
       g.traverse((o) => (o.userData.noCount = true));
       this.markerGroup.add(g);
       if (role === 'start' || role === 'top') {
-        const s = this.label(role === 'start' ? 'START' : 'TOP', col, role === 'top');
+        const s = this.label(role === 'start' ? START_LABEL[hands[id] ?? 'any'] : 'TOP', col, role === 'top');
         s.position.copy(g.position).add(new Vector3(0, rad + 0.12, 0));
         this.markerGroup.add(s);
       }
