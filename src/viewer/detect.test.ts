@@ -10,7 +10,7 @@ import {
   Vector3,
 } from 'three';
 import { detectHold } from './detect';
-import { cutPiece, decodePiece, encodePiece } from './piece';
+import { cutPiece, cutTriangles, decodePiece, encodePiece } from './piece';
 import type { ScanPart } from './scan';
 
 /** A 3 × 3 m flat wall facing +z, with round "holds" stuck on it. Optional floor in front. */
@@ -112,6 +112,29 @@ describe('hold files', () => {
     expect(back.getAttribute('color').getX(0)).toBeCloseTo(0.5, 1);
     expect(back.getAttribute('normal').getZ(0)).toBeCloseTo(cut.geom.getAttribute('normal').getZ(0), 1);
     expect(buf.byteLength).toBe(4 + a.count * 18);
+  });
+
+  it('cuts a long hold by its found shape, leaving the wall beside it out', () => {
+    // Two holds side by side, like one long hold: the found shape must not take in flat wall.
+    const scan = fakeScan([
+      { x: 0, y: 1.5, r: 0.08 },
+      { x: 0.1, y: 1.5, r: 0.08 },
+    ]);
+    const full = { ...scan, meshes: [], box: new Box3(), tris: 0, bytes: 0, source: null! };
+    const d = detectHold(scan, new Vector3(0.05, 1.5, 0.04), 'hold', 0.05, towardsViewer)!;
+    expect(d).not.toBeNull();
+    const shaped = cutTriangles(full, d.tris)!;
+    expect(shaped.geom.getAttribute('position').count).toBe(d.tris.length * 3);
+    // Every triangle in the shaped cut stands off the wall (z > 0); the circle cut also takes flat wall.
+    const z = shaped.geom.getAttribute('position');
+    let flat = 0;
+    for (let i = 0; i < z.count; i += 3)
+      if (Math.max(z.getZ(i), z.getZ(i + 1), z.getZ(i + 2)) < 0.001) flat++;
+    expect(flat).toBe(0);
+    const circle = cutPiece(full, d.c, d.r)!;
+    expect(circle.geom.getAttribute('position').count).toBeGreaterThan(
+      shaped.geom.getAttribute('position').count,
+    );
   });
 
   it('rejects a damaged file', () => {

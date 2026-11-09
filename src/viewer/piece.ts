@@ -50,6 +50,48 @@ const srgbToLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.
 export function cutPiece(scan: LoadedScan, c: Vector3, r: number): CutResult | null {
   const r2 = r * r;
   const sphere = new Sphere(c, r);
+  return cut(
+    scan,
+    (part) => part.box.intersectsSphere(sphere),
+    (P, t) => {
+      const cx = (P.getX(t) + P.getX(t + 1) + P.getX(t + 2)) / 3 - c.x;
+      const cy = (P.getY(t) + P.getY(t + 1) + P.getY(t + 2)) / 3 - c.y;
+      const cz = (P.getZ(t) + P.getZ(t + 1) + P.getZ(t + 2)) / 3 - c.z;
+      return cx * cx + cy * cy + cz * cz < r2;
+    },
+  );
+}
+
+/**
+ * Copy exactly these triangles (indices as numbered by `triCache`, part by part) into one coloured
+ * mesh. Used with the triangles hold detection found, so the piece follows the hold's real shape.
+ */
+export function cutTriangles(scan: LoadedScan, tris: Iterable<number>): CutResult | null {
+  const want = new Set(tris);
+  let offset = 0;
+  const starts = scan.parts.map((p) => {
+    const s = offset;
+    offset += Math.floor(p.geom.getAttribute('position').count / 3);
+    return s;
+  });
+  let k = -1;
+  return cut(
+    scan,
+    (_part, pi) => {
+      k = starts[pi]!;
+      return true;
+    },
+    (_P, t) => want.has(k + t / 3),
+  );
+}
+
+type Positions = BufferGeometry['attributes'][string];
+
+function cut(
+  scan: LoadedScan,
+  usePart: (part: LoadedScan['parts'][number], index: number) => boolean,
+  keep: (P: Positions, t: number) => boolean,
+): CutResult | null {
   const pos: number[] = [];
   const nor: number[] = [];
   const col: number[] = [];
@@ -60,8 +102,8 @@ export function cutPiece(scan: LoadedScan, c: Vector3, r: number): CutResult | n
     e1 = new Vector3(),
     e2 = new Vector3();
   const rgb = [1, 1, 1];
-  for (const part of scan.parts) {
-    if (!part.box.intersectsSphere(sphere)) continue;
+  scan.parts.forEach((part, pi) => {
+    if (!usePart(part, pi)) return;
     const P = part.geom.getAttribute('position');
     const N = part.geom.getAttribute('normal');
     const UV = part.geom.getAttribute('uv');
@@ -69,10 +111,7 @@ export function cutPiece(scan: LoadedScan, c: Vector3, r: number): CutResult | n
     const sample = UV && !CA ? part.sampler : null;
     const base: Color = part.baseColor;
     for (let t = 0; t + 2 < P.count; t += 3) {
-      const cx = (P.getX(t) + P.getX(t + 1) + P.getX(t + 2)) / 3 - c.x;
-      const cy = (P.getY(t) + P.getY(t + 1) + P.getY(t + 2)) / 3 - c.y;
-      const cz = (P.getZ(t) + P.getZ(t + 1) + P.getZ(t + 2)) / 3 - c.z;
-      if (cx * cx + cy * cy + cz * cz >= r2) continue;
+      if (!keep(P, t)) continue;
       a.fromBufferAttribute(P, t);
       b.fromBufferAttribute(P, t + 1);
       d.fromBufferAttribute(P, t + 2);
@@ -93,7 +132,7 @@ export function cutPiece(scan: LoadedScan, c: Vector3, r: number): CutResult | n
         col.push(rgb[0]! * base.r * 255, rgb[1]! * base.g * 255, rgb[2]! * base.b * 255);
       }
     }
-  }
+  });
   if (!pos.length) return null;
   const geom = new BufferGeometry();
   geom.setAttribute('position', new Float32BufferAttribute(pos, 3));

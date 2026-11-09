@@ -46,6 +46,8 @@ export interface Detected {
   r: number;
   /** Outward normal of the wall around the hold. */
   n: Vector3;
+  /** The scan triangles that make up the hold (numbered as in `triCache`). */
+  tris: number[];
 }
 
 /**
@@ -212,7 +214,7 @@ export function detectHold(
     }
     r += Math.min(0.03, link * 0.6);
     if (r > (kind === 'volume' ? 1.0 : 0.4)) return null;
-    return { c: centre, r, n: nrm.clone() };
+    return { c: centre, r, n: nrm.clone(), tris: [...seen] };
   }
   return null;
 }

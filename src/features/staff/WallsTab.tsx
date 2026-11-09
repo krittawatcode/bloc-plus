@@ -18,7 +18,7 @@ import { fmt, mb, plural, uid } from '@/lib/format';
 import { ghostPoints, ScanError } from '@/viewer/scan';
 import { StageTools } from '@/viewer/stage';
 import { useStageScene, useViewer } from '@/viewer/stageContext';
-import { ScanTagger } from './ScanTagger';
+import { RebuildOutline, WallSetup } from './WallSetup';
 import { useStaffWall } from './staffWall';
 import { readScanFile } from './scanFile';
 import { useRememberScan } from './useScan';
@@ -50,9 +50,10 @@ export function WallsTab() {
                   <strong>{w.name}</strong>
                   <br />
                   <span className={`${ui.muted} ${ui.smallText}`}>
-                    {d.holds.filter((h) => h.wallId === w.id).length} holds tagged ·{' '}
-                    {d.routes.filter((r) => r.wallId === w.id && r.type === 'base' && !r.archived).length}{' '}
-                    routes
+                    {plural(
+                      d.routes.filter((r) => r.wallId === w.id && r.type === 'base' && !r.archived).length,
+                      'route',
+                    )}
                   </span>
                 </span>
               </button>
@@ -98,10 +99,7 @@ function PracticeWall() {
           Reset view
         </button>
       </StageTools>
-      <p className={ui.muted}>
-        The demo wall already has holds, including three big holds with small marker holds on them. Set
-        practice routes in the Routes tab.
-      </p>
+      <p className={ui.muted}>Built-in wall to practise on. Set practice routes in the Routes tab.</p>
     </>
   );
 }
@@ -118,7 +116,6 @@ function ScannedWall({ wall }: { wall: Wall }) {
   const wallComments = comments.filter((c) => routeIds.has(c.routeId));
   const parts = [
     'the scan',
-    plural(holds.length, 'tagged hold'),
     plural(routes.length, 'route'),
     ...(wallComments.length ? [plural(wallComments.length, 'comment')] : []),
   ];
@@ -126,41 +123,50 @@ function ScannedWall({ wall }: { wall: Wall }) {
   return (
     <>
       <h3>{wall.name}</h3>
-      <ScanTagger wall={wall} />
-      <RenameWall wall={wall} />
-      <ResetWall wall={wall} routes={routes.filter((r) => !r.archived)} />
-      <div className={ui.field}>
-        <span className={ui.label}>Remove this wall</span>
-        <p className={`${ui.muted} ${ui.smallText}`}>
-          Removes {summary}. Climbers can no longer open its QR codes. This can't be undone.
-        </p>
-        <div className={ui.actions}>
-          <ConfirmButton
-            className={`${ui.btn} ${ui.small} ${ui.danger}`}
-            confirmText="Tap again to remove everything"
-            disabled={del.isPending}
-            onConfirm={() =>
-              del.mutate(
-                {
-                  wall,
-                  holds,
-                  routes,
-                  photoPaths: wallComments.flatMap((c) => (c.photoPath ? [c.photoPath] : [])),
-                },
-                {
-                  onSuccess: () => {
-                    toast(`${wall.name} removed.`);
-                    setWallId(PRACTICE_WALL_ID);
+      <WallSetup wall={wall} locked={holds.length > 0} />
+      <p className={ui.note}>
+        {routes.length
+          ? 'Set routes in the Routes tab.'
+          : 'Next: set routes in the Routes tab. You pick the holds on the wall while setting each route.'}
+      </p>
+      <details className={s.box}>
+        <summary>More</summary>
+        <RenameWall wall={wall} />
+        <ResetWall wall={wall} routes={routes.filter((r) => !r.archived)} />
+        <RebuildOutline wall={wall} />
+        <div className={ui.field}>
+          <span className={ui.label}>Remove this wall</span>
+          <p className={`${ui.muted} ${ui.smallText}`}>
+            Removes {summary}. Climbers can no longer open its QR codes. This can't be undone.
+          </p>
+          <div className={ui.actions}>
+            <ConfirmButton
+              className={`${ui.btn} ${ui.small} ${ui.danger}`}
+              confirmText="Tap again to remove everything"
+              disabled={del.isPending}
+              onConfirm={() =>
+                del.mutate(
+                  {
+                    wall,
+                    holds,
+                    routes,
+                    photoPaths: wallComments.flatMap((c) => (c.photoPath ? [c.photoPath] : [])),
                   },
-                  onError: (e) => toast(friendly(e)),
-                },
-              )
-            }
-          >
-            {del.isPending ? 'Removing…' : 'Remove this wall'}
-          </ConfirmButton>
+                  {
+                    onSuccess: () => {
+                      toast(`${wall.name} removed.`);
+                      setWallId(PRACTICE_WALL_ID);
+                    },
+                    onError: (e) => toast(friendly(e)),
+                  },
+                )
+              }
+            >
+              {del.isPending ? 'Removing…' : 'Remove this wall'}
+            </ConfirmButton>
+          </div>
         </div>
-      </div>
+      </details>
     </>
   );
 }
@@ -187,7 +193,7 @@ function AddWall({ open, onAdded }: { open: boolean; onAdded: (w: Wall) => void 
       remember(wall, scan);
       setName('');
       onAdded(wall);
-      toast('Wall added. Turn it to face you if needed, then tap holds to tag them.');
+      toast('Wall added. Turn it to face you if needed, then set routes.');
     } catch (e) {
       toast(e instanceof ScanError ? e.message : friendly(e));
     } finally {
@@ -197,7 +203,7 @@ function AddWall({ open, onAdded }: { open: boolean; onAdded: (w: Wall) => void 
 
   return (
     <details className={s.box} open={open}>
-      <summary>Add a wall</summary>
+      <summary>+ Add a wall</summary>
       <div className={ui.field}>
         <label className={ui.label} htmlFor="wname">
           Wall name
@@ -213,8 +219,7 @@ function AddWall({ open, onAdded }: { open: boolean; onAdded: (w: Wall) => void 
       </div>
       <ScanDrop busy={busy} onFile={(f) => void onFile(f)} />
       <p className={`${ui.muted} ${ui.smallText}`}>
-        Scan tips: bright even light, slow overlapping photos, extra angles under overhangs, one wall section
-        at a time.
+        Tips: bright even light, slow overlapping photos, extra angles under overhangs.
       </p>
     </details>
   );
@@ -306,7 +311,7 @@ function ResetWall({ wall, routes }: { wall: Wall; routes: Route[] }) {
       });
       remember(next, scan);
       setWallId(next.id);
-      toast(`${wall.name} reset. Tag the new holds, then set the new routes and print their QR codes.`);
+      toast(`${wall.name} reset. Set the new routes and print their QR codes.`);
     } catch (e) {
       toast(e instanceof ScanError ? e.message : friendly(e));
     } finally {
@@ -315,8 +320,8 @@ function ResetWall({ wall, routes }: { wall: Wall; routes: Route[] }) {
   };
 
   return (
-    <details className={s.box}>
-      <summary>Reset this wall</summary>
+    <div className={ui.field}>
+      <span className={ui.label}>Reset this wall</span>
       <p className={`${ui.muted} ${ui.smallText}`}>
         After the setters strip the wall and set new routes, upload a new scan here.{' '}
         {routes.length
@@ -326,7 +331,7 @@ function ResetWall({ wall, routes }: { wall: Wall; routes: Route[] }) {
         Past walls.
       </p>
       <ScanDrop busy={busy} onFile={(f) => void onFile(f)} />
-    </details>
+    </div>
   );
 }
 

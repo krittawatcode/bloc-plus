@@ -1,6 +1,6 @@
 # Bloc+
 
-Phone-first web app for **Bloc City Climbing Gym** (one gym per deployment). Staff scan a wall in 3D, tag holds, and set extra routes (eliminations or new routes from an existing start). Climbers scan a QR code at a start hold, see the route in 3D, tap "I sent it", and comment. Only staff create routes; anyone can comment; staff moderate.
+Phone-first web app for **Bloc City Climbing Gym** (one gym per deployment). Staff upload a 3D scan of a wall, set routes by tapping holds on the scan, and set extra routes (eliminations or new routes from an existing start). Climbers scan a QR code at a start hold, see the route in 3D, tap "I sent it", and comment. Only staff create routes; anyone can comment; staff moderate.
 
 Live: https://krittawatcode.github.io/bloc-plus/ (GitHub Pages, deployed by `.github/workflows/deploy.yml` on push to `main`).
 
@@ -43,7 +43,8 @@ React 19 + TypeScript (strict, `noUncheckedIndexedAccess`) + Vite 7, React Route
 
 - One gym; no gym sign-up. Gym name and grading live in `settings` (row id 1).
 - Grading is set by the gym. Default: Tag 0–8 + Unknown + Surprise.
-- Marker holds: a small route-coloured hold bolted on a big hold/volume. Tagged as Marker, linked to the hold under it; in routes the pair acts as one hold.
+- **Holds are found while setting a route**, not when a wall is added. In the route editor on a scanned wall, a tap on the scan either picks a saved hold or runs `detectHold` (`useHoldFinder`); staff check the highlight and tap Add, which saves the hold and puts it in the route. Pieces are cut from the triangles detection found (`cutTriangles`), so long holds keep their shape; after a manual − / + the circle cut (`cutPiece`) is used. Eliminations and the demo wall use the simple hold view.
+- Marker holds: a small route-coloured hold bolted on a big hold/volume. Saved as Marker, linked to the hold under it; in routes the pair acts as one hold.
 - **Tags** (like "No dyno"): the gym's list is `settings.tags` (staff edit it in Gym, or add one while setting a route); a route's tags are stored in `routes.rules`. Shown on route rows and the route screen.
 - Route types: base (normal taped route), Elimination (cross out holds), New route (start / hand / top / feet).
 - **Feet are optional.** Default is any foot hold. Holds tagged Feet are feet-only; the tag "Marked feet only" (`STRICT_FEET`) makes it competition style. `feetNote()` gives the climber-facing text.

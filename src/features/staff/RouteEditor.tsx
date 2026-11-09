@@ -9,13 +9,15 @@ import { useSession } from '@/data/context';
 import { useComments, useCoreData, useDeleteRoutes, useSaveRoutes } from '@/data/queries';
 import { defaultGradeId, gradeLabel, PRESETS } from '@/domain/grading';
 import { TAPE_COLORS, parentOf, startingHolds, tally, toggleHold, validateRoute } from '@/domain/routes';
-import type { Role, Route, RouteType } from '@/domain/types';
+import type { HoldKind, Role, Route, RouteType } from '@/domain/types';
 import { plural, uid } from '@/lib/format';
 import { holdsOfWall } from '@/viewer/practiceWall';
 import { StageDock, StageTools } from '@/viewer/stage';
 import { useStageScene, useViewer, useViewerEvents } from '@/viewer/stageContext';
 import { useStaffWall } from './staffWall';
 import { TagPicker } from './TagPicker';
+import { useHoldFinder } from './useHoldFinder';
+import { useLoadedScan } from './useScan';
 import s from './Staff.module.css';
 
 const SHORT_ROLE: Record<Exclude<Role, 'off'>, string> = {
@@ -109,29 +111,59 @@ export function RouteEditor() {
   ]);
 
   const base = draft?.baseId ? data.routes.find((r) => r.id === draft.baseId) : undefined;
+  const wall = data.walls.find((w) => w.id === draft?.wallId);
+  const wallHolds = draft ? holdsOfWall(draft.wallId, data.holds) : [];
+  // On a scanned wall, staff tap the scan itself: holds are found and saved as the route is set.
+  // Eliminations only cross out holds the normal route already has, so they keep the simple view.
+  const onScan = !!wall?.scanPath && draft?.type !== 'elim';
+  const scanQuery = useLoadedScan(onScan ? wall : undefined);
+  const scan = scanQuery.data;
+  const finder = useHoldFinder(wall, scan, viewer, wallHolds);
 
   useStageScene(
-    draft ? { kind: 'wall', wallId: draft.wallId, markers: draft.holds } : null,
-    `editor:${draft?.id}:${draft?.wallId}`,
-    'Loading…',
+    !draft
+      ? null
+      : onScan
+        ? scan
+          ? { kind: 'scan', wallId: draft.wallId, scan, markers: draft.holds }
+          : null
+        : { kind: 'wall', wallId: draft.wallId, markers: draft.holds },
+    `editor:${draft?.id}:${draft?.wallId}:${onScan}:${!!scan}`,
+    scanQuery.error ? friendly(scanQuery.error) : onScan ? 'Downloading the wall…' : 'Loading…',
   );
   // Update the rings without moving the camera.
   useEffect(() => {
     if (draft) viewer?.setMarkers(draft.holds);
-  }, [viewer, draft]);
+  }, [viewer, draft, data.holds]);
 
+  const pick = (id: string) => {
+    if (!draft) return;
+    const target = parentOf(holdsOfWall(draft.wallId, data.holds), id);
+    const next = toggleHold(draft, base, target, role);
+    if (typeof next === 'string') toast(next);
+    else setDraft({ ...draft, holds: next });
+  };
   useViewerEvents(
     {
-      holdTap: (id) => {
-        if (!draft) return;
-        const target = parentOf(holdsOfWall(draft.wallId, data.holds), id);
-        const next = toggleHold(draft, base, target, role);
-        if (typeof next === 'string') toast(next);
-        else setDraft({ ...draft, holds: next });
+      holdTap: pick,
+      scanTap: (p, n) => {
+        const id = finder.tap(p, n);
+        if (id) pick(id);
       },
     },
     { zoomFirst: true },
   );
+  const addFound = () =>
+    finder.save().then(
+      (h) => {
+        if (!h || !draft) return;
+        // A marker stands for the big hold under it, so that one goes into the route.
+        const target = h.onId ?? h.id;
+        const next = toggleHold(draft, base, target, role);
+        if (typeof next !== 'string') setDraft({ ...draft, holds: next });
+      },
+      (e: unknown) => toast(friendly(e)),
+    );
 
   if (data.isLoading || !data.settings) return <Loading />;
   if (!draft)
@@ -185,7 +217,59 @@ export function RouteEditor() {
         </button>
       </StageTools>
       <StageDock>
-        {draft.type !== 'elim' ? (
+        {finder.pending ? (
+          <>
+            <p className={d.msg}>{finder.message}</p>
+            <div className={d.seg} role="group" aria-label="What was tapped">
+              {(['hold', 'volume', 'marker'] as HoldKind[]).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={finder.pending?.kind === k}
+                  onClick={() => finder.setKind(k)}
+                  disabled={finder.saving}
+                >
+                  {k[0]!.toUpperCase() + k.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className={d.row}>
+              <button
+                type="button"
+                className={d.btn}
+                aria-label="Smaller"
+                onClick={() => finder.resize(-1)}
+                disabled={finder.saving}
+              >
+                −
+              </button>
+              <span className={d.size}>{Math.round(finder.pending.r * 100)} cm</span>
+              <button
+                type="button"
+                className={d.btn}
+                aria-label="Bigger"
+                onClick={() => finder.resize(1)}
+                disabled={finder.saving}
+              >
+                +
+              </button>
+              <span className={d.spacer} />
+              <button type="button" className={d.btn} onClick={finder.cancel} disabled={finder.saving}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={d.primary}
+                onClick={() => void addFound()}
+                disabled={
+                  !finder.cut || finder.saving || (finder.pending.kind === 'marker' && !finder.pending.onId)
+                }
+              >
+                Add as {SHORT_ROLE[role]}
+              </button>
+            </div>
+          </>
+        ) : draft.type !== 'elim' ? (
           <div className={d.seg} role="group" aria-label="Role to place">
             {(Object.keys(SHORT_ROLE) as (keyof typeof SHORT_ROLE)[]).map((r) => (
               <button
@@ -203,18 +287,20 @@ export function RouteEditor() {
         ) : (
           <p className={d.msg}>Tap a {base?.name} hold to cross it out. Tap again to bring it back.</p>
         )}
-        <div className={d.row}>
-          <span className={d.tally} data-testid="tally">
-            {tally(draft)}
-          </span>
-          <button
-            type="button"
-            className={d.primary}
-            onClick={() => nameRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
-          >
-            Name &amp; grade
-          </button>
-        </div>
+        {!finder.pending && (
+          <div className={d.row}>
+            <span className={d.tally} data-testid="tally">
+              {tally(draft)}
+            </span>
+            <button
+              type="button"
+              className={d.primary}
+              onClick={() => nameRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
+            >
+              Name &amp; grade
+            </button>
+          </div>
+        )}
       </StageDock>
 
       <Link to={backTo} className={ui.back}>
@@ -224,7 +310,9 @@ export function RouteEditor() {
       <p className={ui.muted}>
         {draft.type === 'elim'
           ? `Tap a ${base?.name} hold on the wall to cross it out. Tap it again to bring it back.`
-          : 'Pick Start, Hand or Top on the wall view, then tap holds. Tap a hold again to remove it. Tapping a marker hold selects the big hold under it too. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" tag.'}
+          : onScan
+            ? 'Pick Start, Hand, Top or Feet, then tap a hold on the wall. The app finds its edge: check it and tap Add. Tap a hold in the route again to remove it. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" tag.'
+            : 'Pick Start, Hand or Top on the wall view, then tap holds. Tap a hold again to remove it. Tapping a marker hold selects the big hold under it too. Feet are optional: climbers can use any foot hold unless you mark Feet holds or add the "Marked feet only" tag.'}
       </p>
 
       <div className={ui.field}>

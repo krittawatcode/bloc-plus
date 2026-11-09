@@ -32,6 +32,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { Hold, HoldMap, Role } from '@/domain/types';
 import { PRACTICE_WALL_ID } from '@/domain/types';
 import { withMarkers } from '@/domain/routes';
+import { plural } from '@/lib/format';
 import type { LoadedScan } from './scan';
 import { gridFromPoints, type GridWall } from './gridWall';
 import { PRACTICE_BOX, PRACTICE_HOLDS, buildPracticeHold, practiceWallObjects } from './practiceWall';
@@ -424,7 +425,7 @@ export class WallViewer {
       this.fit(spec.scan.box, 0.2);
       this.setMarkers(spec.markers);
       this.status(
-        `Full scan · ${spec.scan.tris.toLocaleString('en-US')} triangles · ${this.holdsOf(spec.wallId).length} tagged`,
+        `Full scan · ${spec.scan.tris.toLocaleString('en-US')} triangles · ${plural(this.holdsOf(spec.wallId).length, 'hold')}`,
       );
       return true;
     }
