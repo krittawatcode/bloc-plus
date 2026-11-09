@@ -6,7 +6,6 @@ import {
   Float32BufferAttribute,
   IcosahedronGeometry,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   type Object3D,
   Points,
@@ -279,33 +278,6 @@ export function practiceWallObjects(c: PracticeColours): Object3D[] {
   );
   floor.position.set(0, -0.15, 1.3);
   return [wall, tnuts, floor];
-}
-
-/** A faint see-through version of the practice wall for climber views. */
-export function practiceGhostObjects(fg: string, strength = 1): Object3D[] {
-  const g = wallGeometry(18, 12);
-  return [
-    new Mesh(
-      g,
-      new MeshBasicMaterial({
-        color: fg,
-        wireframe: true,
-        transparent: true,
-        opacity: Math.min(1, 0.16 * strength),
-        depthWrite: false,
-      }),
-    ),
-    new Mesh(
-      g,
-      new MeshBasicMaterial({
-        color: fg,
-        transparent: true,
-        opacity: Math.min(1, 0.045 * strength),
-        side: DoubleSide,
-        depthWrite: false,
-      }),
-    ),
-  ];
 }
 
 export const PRACTICE_BOX = {

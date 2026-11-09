@@ -4,6 +4,7 @@ import {
   BoxGeometry,
   BufferGeometry,
   CanvasTexture,
+  Color,
   DirectionalLight,
   DoubleSide,
   Group,
@@ -16,8 +17,8 @@ import {
   MeshStandardMaterial,
   type Object3D,
   PerspectiveCamera,
-  Points,
-  PointsMaterial,
+  LineBasicMaterial,
+  LineSegments,
   Raycaster,
   Scene,
   Sprite,
@@ -27,20 +28,14 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
-  BufferAttribute,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { Hold, HoldMap, Role } from '@/domain/types';
 import { PRACTICE_WALL_ID } from '@/domain/types';
 import { withMarkers } from '@/domain/routes';
 import type { LoadedScan } from './scan';
-import {
-  PRACTICE_BOX,
-  PRACTICE_HOLDS,
-  buildPracticeHold,
-  practiceGhostObjects,
-  practiceWallObjects,
-} from './practiceWall';
+import { gridFromPoints, type GridWall } from './gridWall';
+import { PRACTICE_BOX, PRACTICE_HOLDS, buildPracticeHold, practiceWallObjects } from './practiceWall';
 
 export type MarkerRole = Role | 'tag' | 'marker';
 export type MarkerMap = Record<string, MarkerRole>;
@@ -50,13 +45,15 @@ export interface HoldSource {
   holds(wallId: string): Hold[];
   piece(hold: Hold): Promise<BufferGeometry>;
   ghost(wallId: string): Promise<Float32Array | null>;
+  /** The full scan, drawn dimmed behind holds. Null when the wall has no scan. */
+  scan(wallId: string): Promise<LoadedScan | null>;
 }
 
 export type SceneSpec =
   /** A whole wall with its tagged holds. Taps pick holds. */
   | { kind: 'wall'; wallId: string; markers: MarkerMap; holdIds?: string[] }
-  /** One route: only its holds plus an optional see-through outline. */
-  | { kind: 'route'; wallId: string; holds: HoldMap; ghost: boolean }
+  /** One route: its holds bright, the real wall dimmed behind them. */
+  | { kind: 'route'; wallId: string; holds: HoldMap }
   /** The full scan, for tagging. Taps hit the scan surface. */
   | { kind: 'scan'; wallId: string; scan: LoadedScan; markers: MarkerMap };
 
@@ -115,7 +112,8 @@ export class WallViewer {
   });
   private pieces = new Map<string, Mesh>();
   private practice = new Map<string, Mesh>();
-  private ghosts = new Map<string, Promise<Points | null>>();
+  private ghosts = new Map<string, Promise<GridWall | null>>();
+  private backdrops = new Map<string, Promise<Backdrop | null>>();
   private ray = new Raycaster();
   private resizeObs: ResizeObserver;
   private down: { x: number; y: number; t: number } | null = null;
@@ -339,35 +337,78 @@ export class WallViewer {
     this.pieces.delete(id);
   }
 
-  private ghost(wallId: string): Promise<Points | null> {
+  /** A grid surface of the wall, fitted to its small outline file (the real scan is much bigger). */
+  private ghost(wallId: string): Promise<GridWall | null> {
     let p = this.ghosts.get(wallId);
     if (!p) {
-      p = this.source.ghost(wallId).then((arr) => {
-        if (!arr) return null;
-        const g = new BufferGeometry();
-        g.setAttribute('position', new BufferAttribute(arr, 3));
-        g.computeBoundingBox();
-        const diag = g.boundingBox!.getSize(new Vector3()).length() || 4;
-        return new Points(
-          g,
-          new PointsMaterial({
-            color: '#000',
-            size: diag / 450,
-            transparent: true,
-            opacity: 0.35,
-            depthWrite: false,
-          }),
-        );
-      });
+      p = this.source.ghost(wallId).then((arr) => (arr ? gridFromPoints(arr) : null));
       p.catch(() => this.ghosts.delete(wallId));
       this.ghosts.set(wallId, p);
     }
     return p;
   }
 
-  /** Call when a wall's outline file changes (for example after turning the scan). */
+  /** Grid lines over a very light fill, the same look as the demo wall's outline. */
+  private gridObjects(grid: GridWall, fg: string, strength: number): Group {
+    const g = new Group();
+    g.add(
+      new LineSegments(
+        grid.lines,
+        new LineBasicMaterial({
+          color: fg,
+          transparent: true,
+          opacity: Math.min(1, 0.22 * strength),
+          depthWrite: false,
+        }),
+      ),
+    );
+    const fill = new Mesh(
+      grid.fill,
+      new MeshBasicMaterial({
+        color: fg,
+        transparent: true,
+        opacity: Math.min(1, 0.045 * strength),
+        side: DoubleSide,
+        depthWrite: false,
+      }),
+    );
+    fill.userData.noCount = true;
+    g.add(fill);
+    return g;
+  }
+
+  /** The real scan, with its own copies of the materials so dimming never touches the tagger's scan. */
+  private backdrop(wallId: string): Promise<Backdrop | null> {
+    let p = this.backdrops.get(wallId);
+    if (!p) {
+      p = this.source.scan(wallId).then((scan) => {
+        if (!scan) return null;
+        const group = new Group();
+        const mats: Backdrop['mats'] = [];
+        for (const m of scan.meshes) {
+          const src = (Array.isArray(m.material) ? m.material[0] : m.material) as MeshStandardMaterial;
+          const mat = src.clone();
+          // Holds are cut from this same surface: push the wall back a little so they draw on top.
+          mat.polygonOffset = true;
+          mat.polygonOffsetFactor = 2;
+          mat.polygonOffsetUnits = 2;
+          const mesh = new Mesh(m.geometry, mat);
+          mesh.userData.noCount = true;
+          group.add(mesh);
+          mats.push({ mat, base: (src.color ?? new Color(1, 1, 1)).clone() });
+        }
+        return { group, mats };
+      });
+      p.catch(() => this.backdrops.delete(wallId));
+      this.backdrops.set(wallId, p);
+    }
+    return p;
+  }
+
+  /** Call when a wall's scan or outline changes (for example after turning the scan). */
   forgetGhost(wallId: string) {
     this.ghosts.delete(wallId);
+    this.backdrops.delete(wallId);
   }
 
   /**
@@ -395,15 +436,12 @@ export class WallViewer {
     const ids = routeHolds
       ? Object.keys(routeHolds)
       : ((spec.kind === 'wall' ? spec.holdIds : undefined) ?? this.holdsOf(wallId).map((h) => h.id));
-    const wantGhost = spec.kind === 'wall' || spec.ghost;
-    let ghost: Points | null = null;
+    // Real walls: a light grid shows at once (small file); the real scan replaces it once downloaded.
+    let grid: GridWall | null = null;
     if (wallId !== PRACTICE_WALL_ID) {
       this.status('Loading holds…');
-      const [g] = await Promise.all([
-        wantGhost ? this.ghost(wallId) : Promise.resolve(null),
-        this.loadPieces(wallId, ids),
-      ]);
-      ghost = g;
+      const [g] = await Promise.all([this.ghost(wallId).catch(() => null), this.loadPieces(wallId, ids)]);
+      grid = g;
       if (tok !== this.token) return false;
     }
     this.newScene();
@@ -420,22 +458,21 @@ export class WallViewer {
       depthWrite: false,
     });
     const box = new Box3();
+    let gridGroup: Group | null = null;
     if (wallId === PRACTICE_WALL_ID) {
-      if (spec.kind === 'wall') {
-        for (const o of practiceWallObjects({
-          wall: this.colour('--wall'),
-          tnut: this.colour('--tnut'),
-          mat: this.colour('--mat'),
-          fg,
-        }))
-          this.scene.add(o);
-        box.set(PRACTICE_BOX.min.clone(), PRACTICE_BOX.max.clone());
-      } else if (spec.ghost) for (const o of practiceGhostObjects(fg, outline)) this.scene.add(o);
-    } else if (ghost) {
-      (ghost.material as PointsMaterial).color.set(fg);
-      (ghost.material as PointsMaterial).opacity = Math.min(1, 0.35 * outline);
-      this.scene.add(ghost);
-      if (spec.kind === 'wall') box.copy(ghost.geometry.boundingBox!);
+      // The demo wall is always shown as it is, like a scanned wall.
+      for (const o of practiceWallObjects({
+        wall: this.colour('--wall'),
+        tnut: this.colour('--tnut'),
+        mat: this.colour('--mat'),
+        fg,
+      }))
+        this.scene.add(o);
+      if (spec.kind === 'wall') box.set(PRACTICE_BOX.min.clone(), PRACTICE_BOX.max.clone());
+    } else if (grid) {
+      gridGroup = this.gridObjects(grid, fg, outline);
+      this.scene.add(gridGroup);
+      if (spec.kind === 'wall') box.copy(grid.box);
     }
     const offMat = new MeshStandardMaterial({
       color: this.colour('--off'),
@@ -471,7 +508,7 @@ export class WallViewer {
       this.fit(routeBox, 0.42);
       this.setMarkers(spec.holds, true);
       this.status(
-        `${shown} of ${this.holdsOf(wallId).length} holds loaded · ${this.countTris().toLocaleString('en-US')} triangles${spec.ghost ? ' · wall outline' : ''}`,
+        `${shown} of ${this.holdsOf(wallId).length} holds loaded · ${this.countTris().toLocaleString('en-US')} triangles${wallId === PRACTICE_WALL_ID ? '' : ' · loading wall…'}`,
       );
     } else {
       if (box.isEmpty())
@@ -481,7 +518,32 @@ export class WallViewer {
       this.status(`${shown} holds · ${this.countTris().toLocaleString('en-US')} triangles`);
     }
     this.render();
+    // The real wall can be tens of MB, so the route shows first and the wall fades in behind it.
+    if (wallId !== PRACTICE_WALL_ID) void this.showBackdrop(wallId, tok, spec.kind, gridGroup, shown);
     return true;
+  }
+
+  private async showBackdrop(
+    wallId: string,
+    tok: number,
+    kind: 'wall' | 'route',
+    grid: Group | null,
+    shown: number,
+  ) {
+    // If the scan can't be loaded, the dot outline stays.
+    const b = await this.backdrop(wallId).catch(() => null);
+    if (tok !== this.token) return;
+    if (!b) {
+      if (kind === 'route') this.status(`${shown} holds · wall grid`);
+      return;
+    }
+    // Dim the wall more behind a single route, so its holds stand out.
+    const dim = (parseFloat(this.theme.css('--backdrop-dim')) || 0.5) * (kind === 'route' ? 1 : 1.4);
+    for (const { mat, base } of b.mats) mat.color.copy(base).multiplyScalar(Math.min(1, dim));
+    if (grid) this.scene.remove(grid);
+    this.scene.add(b.group);
+    if (kind === 'route') this.status(`${shown} holds · full wall`);
+    this.render();
   }
 
   private countTris() {
@@ -716,4 +778,10 @@ function halo(hold: Object3D, mat: Material): Object3D {
     .multiply(new Matrix4().makeTranslation(-c.x, -c.y, -c.z))
     .multiply(hold.matrixWorld);
   return h;
+}
+
+/** The real scan drawn behind holds, with the original colour of each material for dimming. */
+interface Backdrop {
+  group: Group;
+  mats: { mat: MeshStandardMaterial; base: Color }[];
 }

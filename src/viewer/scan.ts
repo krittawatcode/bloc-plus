@@ -121,18 +121,69 @@ export function buildScan(source: Object3D, o: Orientation, bytes: number): Load
   return { parts, meshes, box: full, tris: Math.round(tris), bytes, source };
 }
 
-/** A light outline of the wall for climbers: about 9,000 points. */
-export function ghostPoints(scan: LoadedScan, target = 9000): Float32Array {
+/**
+ * A light outline of the wall for climbers: points spread evenly over the scan's surface (by triangle
+ * area, not by vertex, so flat panels get as many points as busy holds). About 30,000 points, 360 KB.
+ */
+export function ghostPoints(scan: LoadedScan, target = 30000): Float32Array {
+  // Pass 1: the area of every triangle (no objects per triangle, so big scans fit on a phone).
+  const parts = scan.parts.map((p) => {
+    const pos = p.geom.getAttribute('position');
+    const idx = p.geom.getIndex();
+    const n = Math.floor((idx ? idx.count : pos.count) / 3);
+    const corner = (t: number, k: number) => (idx ? idx.getX(t * 3 + k) : t * 3 + k);
+    const areas = new Float32Array(n);
+    for (let t = 0; t < n; t++) {
+      const a = corner(t, 0);
+      const b = corner(t, 1);
+      const c = corner(t, 2);
+      const ux = pos.getX(b) - pos.getX(a);
+      const uy = pos.getY(b) - pos.getY(a);
+      const uz = pos.getZ(b) - pos.getZ(a);
+      const vx = pos.getX(c) - pos.getX(a);
+      const vy = pos.getY(c) - pos.getY(a);
+      const vz = pos.getZ(c) - pos.getZ(a);
+      areas[t] = Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx) / 2;
+    }
+    return { pos, corner, areas };
+  });
   let total = 0;
-  for (const p of scan.parts) total += p.geom.getAttribute('position').count;
-  const stride = Math.max(1, Math.ceil(total / target));
-  const pts: number[] = [];
-  for (const p of scan.parts) {
-    const a = p.geom.getAttribute('position');
-    for (let i = 0; i < a.count; i += stride) pts.push(a.getX(i), a.getY(i), a.getZ(i));
-  }
-  return new Float32Array(pts);
+  for (const p of parts) for (const a of p.areas) total += a;
+  if (total <= 0) return new Float32Array();
+
+  // Pass 2: drop points along the surface, one every `step` square metres.
+  let seed = 1; // fixed, so the same scan always gives the same outline
+  const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  const out = new Float32Array(target * 3);
+  const step = total / target;
+  let acc = rand() * step;
+  let o = 0;
+  for (const { pos, corner, areas } of parts)
+    for (let t = 0; t < areas.length; t++) {
+      acc += areas[t]!;
+      while (acc >= step && o < out.length) {
+        acc -= step;
+        let u = rand();
+        let v = rand();
+        if (u + v > 1) {
+          u = 1 - u;
+          v = 1 - v;
+        }
+        const w = 1 - u - v;
+        const a = corner(t, 0);
+        const b = corner(t, 1);
+        const c = corner(t, 2);
+        out[o++] = pos.getX(a) * w + pos.getX(b) * u + pos.getX(c) * v;
+        out[o++] = pos.getY(a) * w + pos.getY(b) * u + pos.getY(c) * v;
+        out[o++] = pos.getZ(a) * w + pos.getZ(b) * u + pos.getZ(c) * v;
+      }
+    }
+  return out.slice(0, o);
 }
+
+/** Cache key of a parsed scan. The tagger and the wall backdrop share it, so a scan downloads once. */
+export const scanKey = (w: { id: string; scanPath: string | null; upright: boolean; spin: number }) =>
+  ['scan', w.id, w.scanPath, w.upright, w.spin] as const;
 
 export class ScanError extends Error {}
 

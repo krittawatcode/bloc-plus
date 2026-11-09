@@ -6,7 +6,6 @@ import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
 import { useComments, useCoreData, useRatings, useSaveRoutes, useSendCounts } from '@/data/queries';
 import { ExtraRowBody, RouteTools } from '@/features/climber/shared';
-import { useGhostPref } from '@/features/climber/useClimberData';
 import { useStageScene } from '@/viewer/stageContext';
 import s from './Staff.module.css';
 
@@ -20,7 +19,6 @@ export function StartTab() {
   const comments = useComments();
   const toast = useToast();
   const location = useLocation();
-  const [ghost, setGhost] = useGhostPref();
   const [preview] = useState<string | null>((location.state as { preview?: string } | null)?.preview ?? null);
   const base = d.routes.find((r) => r.id === baseId && r.type === 'base');
   const extras = d.routes.filter((r) => r.baseId === base?.id);
@@ -28,8 +26,8 @@ export function StartTab() {
   const shown = extras.find((x) => x.id === preview) ?? base;
 
   useStageScene(
-    shown ? { kind: 'route', wallId: shown.wallId, holds: shown.holds, ghost } : null,
-    `staff-start:${shown?.id}:${ghost}:${d.holds.length}`,
+    shown ? { kind: 'route', wallId: shown.wallId, holds: shown.holds } : null,
+    `staff-start:${shown?.id}:${d.holds.length}`,
     d.isLoading ? 'Loading…' : 'This route no longer exists.',
   );
 
@@ -46,7 +44,7 @@ export function StartTab() {
 
   return (
     <>
-      <RouteTools ghost={ghost} onGhost={setGhost} />
+      <RouteTools />
       <Link to="/staff/routes" className={ui.back}>
         All routes
       </Link>

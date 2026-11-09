@@ -1,12 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Wall } from '@/domain/types';
 import { useBackend } from '@/data/context';
-import { parseScan, type LoadedScan } from '@/viewer/scan';
+import { parseScan, scanKey, type LoadedScan } from '@/viewer/scan';
 
-/** The full scan of a wall, for tagging. Only staff ever download it. Kept in memory for this visit. */
-export const scanKey = (w: Pick<Wall, 'id' | 'scanPath' | 'upright' | 'spin'>) =>
-  ['scan', w.id, w.scanPath, w.upright, w.spin] as const;
-
+/** The full scan of a wall: for tagging, and behind routes. Kept in memory for this visit. */
 export function useLoadedScan(wall: Wall | undefined) {
   const backend = useBackend();
   return useQuery({

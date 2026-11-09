@@ -13,20 +13,19 @@ import { holdsOfWall } from '@/viewer/practiceWall';
 import { useStageScene } from '@/viewer/stageContext';
 import { Comments } from './Comments';
 import { RouteTools } from './shared';
-import { useClimberData, useGhostPref } from './useClimberData';
+import { useClimberData } from './useClimberData';
 import s from './RoutePage.module.css';
 
 /** One extra route: only its holds in 3D, the setter's notes, sends and comments. */
 export function RoutePage() {
   const { routeId } = useParams();
   const d = useClimberData();
-  const [ghost, setGhost] = useGhostPref();
   const route = d.route(routeId);
   const base = route?.baseId ? d.route(route.baseId) : undefined;
 
   useStageScene(
-    route && !route.archived ? { kind: 'route', wallId: route.wallId, holds: route.holds, ghost } : null,
-    `route:${route?.id}:${ghost}:${d.holds.length}`,
+    route && !route.archived ? { kind: 'route', wallId: route.wallId, holds: route.holds } : null,
+    `route:${route?.id}:${d.holds.length}`,
     d.isLoading ? 'Loading…' : 'This route has been taken down.',
   );
 
@@ -51,7 +50,7 @@ export function RoutePage() {
 
   return (
     <>
-      <RouteTools ghost={ghost} onGhost={setGhost} />
+      <RouteTools />
       <Link to={`/r/${base.id}`} className={ui.back}>
         {base.name} start
       </Link>

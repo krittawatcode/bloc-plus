@@ -5,18 +5,17 @@ import { useStageScene } from '@/viewer/stageContext';
 import rs from './RoutePage.module.css';
 import { CommentItem } from './CommentItem';
 import { ExtraRow, RouteTools } from './shared';
-import { useClimberData, useGhostPref } from './useClimberData';
+import { useClimberData } from './useClimberData';
 
 /** What a QR sticker opens: the normal route from this start, and its extras. */
 export function SpotPage() {
   const { baseId } = useParams();
   const d = useClimberData();
-  const [ghost, setGhost] = useGhostPref();
   const base = d.route(baseId);
 
   useStageScene(
-    base ? { kind: 'route', wallId: base.wallId, holds: base.holds, ghost } : null,
-    `spot:${base?.id}:${ghost}:${d.holds.length}`,
+    base ? { kind: 'route', wallId: base.wallId, holds: base.holds } : null,
+    `spot:${base?.id}:${d.holds.length}`,
     d.isLoading ? 'Loading…' : 'This start is no longer here.',
   );
 
@@ -39,7 +38,7 @@ export function SpotPage() {
   const total = fromHere.length;
   return (
     <>
-      <RouteTools ghost={ghost} onGhost={setGhost} />
+      <RouteTools />
       <Link to="/" className={ui.back}>
         All starts
       </Link>

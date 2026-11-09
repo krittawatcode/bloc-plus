@@ -151,7 +151,8 @@ export function ScanTagger({ wall }: { wall: Wall }) {
       onError: (e) => toast(friendly(e)),
     });
   };
-  const turn = (what: 'upright' | 'spin') => {
+  // Turn the scan, or with no `what` keep the orientation and only make a fresh wall outline.
+  const turn = (what?: 'upright' | 'spin') => {
     if (!scan || !viewer) return;
     const o = {
       upright: what === 'upright' ? !wall.upright : wall.upright,
@@ -164,6 +165,7 @@ export function ScanTagger({ wall }: { wall: Wall }) {
         onSuccess: (w) => {
           remember(w, turned);
           viewer.forgetGhost(w.id);
+          if (!what) toast('Wall outline rebuilt.');
         },
         onError: (e) => {
           buildScan(scan.source, wall, scan.bytes);
@@ -306,11 +308,20 @@ export function ScanTagger({ wall }: { wall: Wall }) {
           >
             Turn 90°
           </button>
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.small}`}
+            disabled={reorient.isPending}
+            onClick={() => turn()}
+          >
+            Rebuild outline
+          </button>
         </div>
         <p className={`${ui.muted} ${ui.smallText}`}>
           {holds.length
             ? 'Remove all tags to change orientation.'
-            : 'Turn the scan until the wall faces you, then tag holds.'}
+            : 'Turn the scan until the wall faces you, then tag holds.'}{' '}
+          Rebuild outline redraws the see-through wall shown behind routes.
         </p>
       </div>
       <div className={ui.field}>

@@ -85,16 +85,13 @@ export function ExtraRow(props: {
   );
 }
 
-/** Reset view and wall-outline buttons for route views. */
-export function RouteTools({ ghost, onGhost }: { ghost: boolean; onGhost: (on: boolean) => void }) {
+/** Reset view button for route views. */
+export function RouteTools() {
   const viewer = useViewer();
   return (
     <StageTools>
       <button type="button" onClick={() => viewer?.resetView()}>
         Reset view
-      </button>
-      <button type="button" aria-pressed={ghost} onClick={() => onGhost(!ghost)}>
-        Outline {ghost ? 'on' : 'off'}
       </button>
     </StageTools>
   );

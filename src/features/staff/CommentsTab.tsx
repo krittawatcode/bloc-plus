@@ -37,7 +37,7 @@ export function CommentsTab() {
   const shown = selected ? route(selected) : undefined;
 
   useStageScene(
-    shown ? { kind: 'route', wallId: shown.wallId, holds: shown.holds, ghost: true } : null,
+    shown ? { kind: 'route', wallId: shown.wallId, holds: shown.holds } : null,
     `comments:${shown?.id}:${d.holds.length}`,
     'Tap a route on a comment to see it on the wall.',
   );

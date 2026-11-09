@@ -406,7 +406,7 @@ function PastWall({ wall }: { wall: Wall }) {
 
   useStageScene(
     shown
-      ? { kind: 'route', wallId: wall.id, holds: shown.holds, ghost: true }
+      ? { kind: 'route', wallId: wall.id, holds: shown.holds }
       : { kind: 'wall', wallId: wall.id, markers: {} },
     `past:${wall.id}:${shown?.id}:${holds.length}`,
   );

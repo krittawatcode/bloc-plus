@@ -11,7 +11,6 @@ interface Prefs {
   /** Stars this phone gave, by route id. */
   rated: Record<string, number>;
   staffWall: string | null;
-  ghost: boolean;
   /** Theme picked in the header; null follows the phone's setting. */
   theme: 'light' | 'dark' | null;
 }
@@ -31,7 +30,6 @@ function read(): Prefs {
     sent: p.sent ?? {},
     rated: p.rated ?? {},
     staffWall: p.staffWall ?? null,
-    ghost: p.ghost ?? true,
     theme: p.theme ?? null,
   };
 }

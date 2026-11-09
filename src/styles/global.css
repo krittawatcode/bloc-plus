@@ -16,6 +16,7 @@
   --halo: #2a2540;
   --halo-opacity: 0.28;
   --outline-strength: 1;
+  --backdrop-dim: 0.55;
   --start: #1c9a52;
   --top: #c78900;
   --foot: #2c68e0;
@@ -50,6 +51,8 @@
     --halo: #ffffff;
     --halo-opacity: 0.55;
     --outline-strength: 1.2;
+    --backdrop-dim: 0.42;
+    --backdrop-dim: 0.42;
     --start: #3ad17a;
     --top: #f2b62c;
     --foot: #6f9bff;

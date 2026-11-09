@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { useBackend, useSession } from '@/data/context';
 import { useComments, useCoreData, useRatings, useSendCounts } from '@/data/queries';
 import { isCurrentWall, PRACTICE_WALL_ID, type Wall } from '@/domain/types';
-import { device } from '@/lib/device';
 
 /** Data every climber screen uses, plus helpers to look things up. */
 export function useClimberData() {
@@ -41,15 +39,4 @@ export function useClimberData() {
     wallName: (id: string) =>
       id === PRACTICE_WALL_ID ? 'Demo wall' : (core.walls.find((w) => w.id === id)?.name ?? 'Wall'),
   };
-}
-
-export function useGhostPref() {
-  const [ghost, setGhost] = useState(device.get().ghost);
-  return [
-    ghost,
-    (on: boolean) => {
-      device.set({ ghost: on });
-      setGhost(on);
-    },
-  ] as const;
 }
