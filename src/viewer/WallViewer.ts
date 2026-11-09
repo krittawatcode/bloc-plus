@@ -4,7 +4,6 @@ import {
   BoxGeometry,
   BufferGeometry,
   CanvasTexture,
-  Color,
   DirectionalLight,
   DoubleSide,
   Group,
@@ -52,7 +51,7 @@ export interface HoldSource {
 export type SceneSpec =
   /** A whole wall with its tagged holds. Taps pick holds. */
   | { kind: 'wall'; wallId: string; markers: MarkerMap; holdIds?: string[] }
-  /** One route: its holds bright, the real wall dimmed behind them. */
+  /** One route: its holds ringed on the real wall. */
   | { kind: 'route'; wallId: string; holds: HoldMap }
   /** The full scan, for tagging. Taps hit the scan surface. */
   | { kind: 'scan'; wallId: string; scan: LoadedScan; markers: MarkerMap };
@@ -384,7 +383,6 @@ export class WallViewer {
       p = this.source.scan(wallId).then((scan) => {
         if (!scan) return null;
         const group = new Group();
-        const mats: Backdrop['mats'] = [];
         for (const m of scan.meshes) {
           const src = (Array.isArray(m.material) ? m.material[0] : m.material) as MeshStandardMaterial;
           const mat = src.clone();
@@ -395,9 +393,8 @@ export class WallViewer {
           const mesh = new Mesh(m.geometry, mat);
           mesh.userData.noCount = true;
           group.add(mesh);
-          mats.push({ mat, base: (src.color ?? new Color(1, 1, 1)).clone() });
         }
-        return { group, mats };
+        return { group };
       });
       p.catch(() => this.backdrops.delete(wallId));
       this.backdrops.set(wallId, p);
@@ -483,9 +480,13 @@ export class WallViewer {
     });
     const routeBox = new Box3();
     let shown = 0;
+    // Hold copies that the real wall replaces once it loads (the scan has the same holds in true colour).
+    const copies: Object3D[] = [];
     for (const id of ids) {
       let m: Object3D | null = this.holdMesh(wallId, id);
       if (!m) continue;
+      m.visible = true; // copies are shared between scenes; an earlier scene may have hidden this one
+      if (routeHolds?.[id] !== 'off') copies.push(m);
       if (routeHolds?.[id] === 'off') {
         m = m.clone();
         m.traverse((o) => {
@@ -519,7 +520,7 @@ export class WallViewer {
     }
     this.render();
     // The real wall can be tens of MB, so the route shows first and the wall fades in behind it.
-    if (wallId !== PRACTICE_WALL_ID) void this.showBackdrop(wallId, tok, spec.kind, gridGroup, shown);
+    if (wallId !== PRACTICE_WALL_ID) void this.showBackdrop(wallId, tok, spec.kind, gridGroup, copies, shown);
     return true;
   }
 
@@ -528,19 +529,20 @@ export class WallViewer {
     tok: number,
     kind: 'wall' | 'route',
     grid: Group | null,
+    copies: Object3D[],
     shown: number,
   ) {
-    // If the scan can't be loaded, the dot outline stays.
+    // If the scan can't be loaded, the grid and the hold copies stay.
     const b = await this.backdrop(wallId).catch(() => null);
     if (tok !== this.token) return;
     if (!b) {
       if (kind === 'route') this.status(`${shown} holds · wall grid`);
       return;
     }
-    // Dim the wall more behind a single route, so its holds stand out.
-    const dim = (parseFloat(this.theme.css('--backdrop-dim')) || 0.5) * (kind === 'route' ? 1 : 1.4);
-    for (const { mat, base } of b.mats) mat.color.copy(base).multiplyScalar(Math.min(1, dim));
+    // Show the wall as it is: no dimming, and the scan's own holds instead of the copies cut from it
+    // (their colours are a little off). The copies stay as invisible tap targets; rings mark the route.
     if (grid) this.scene.remove(grid);
+    for (const m of copies) m.visible = false;
     this.scene.add(b.group);
     if (kind === 'route') this.status(`${shown} holds · full wall`);
     this.render();
@@ -780,8 +782,7 @@ function halo(hold: Object3D, mat: Material): Object3D {
   return h;
 }
 
-/** The real scan drawn behind holds, with the original colour of each material for dimming. */
+/** The real scan drawn behind the route's rings. */
 interface Backdrop {
   group: Group;
-  mats: { mat: MeshStandardMaterial; base: Color }[];
 }
