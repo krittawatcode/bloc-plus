@@ -12,6 +12,8 @@ interface Prefs {
   rated: Record<string, number>;
   staffWall: string | null;
   ghost: boolean;
+  /** Theme picked in the header; null follows the phone's setting. */
+  theme: 'light' | 'dark' | null;
 }
 
 const KEY = 'blocplus-device';
@@ -30,6 +32,7 @@ function read(): Prefs {
     rated: p.rated ?? {},
     staffWall: p.staffWall ?? null,
     ghost: p.ghost ?? true,
+    theme: p.theme ?? null,
   };
 }
 
