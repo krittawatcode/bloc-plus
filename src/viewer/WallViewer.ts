@@ -599,10 +599,12 @@ export class WallViewer {
 
   /** Rings and labels can be turned off to see the holds without anything in the way. */
   private markersShown = true;
+  private legendRoles: MarkerRole[] = [];
 
   setMarkersShown(on: boolean) {
     this.markersShown = on;
     this.markerGroup.visible = on;
+    this.events.legend?.(on ? this.legendRoles : []);
     this.render();
   }
 
@@ -648,7 +650,8 @@ export class WallViewer {
         this.markerGroup.add(s);
       }
     }
-    this.events.legend?.(LEGEND_ORDER.filter((r) => roles.has(r)));
+    this.legendRoles = LEGEND_ORDER.filter((r) => roles.has(r));
+    this.events.legend?.(this.markersShown ? this.legendRoles : []);
     this.render();
   }
 
