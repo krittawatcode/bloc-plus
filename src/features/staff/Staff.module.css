@@ -90,6 +90,18 @@
   cursor: pointer;
   font-weight: 700;
 }
+.tips summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+}
+.tips ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .swatchButton {
   width: 32px;
   height: 32px;

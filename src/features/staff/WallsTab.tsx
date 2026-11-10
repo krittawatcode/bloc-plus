@@ -218,9 +218,43 @@ function AddWall({ open, onAdded }: { open: boolean; onAdded: (w: Wall) => void 
         />
       </div>
       <ScanDrop busy={busy} onFile={(f) => void onFile(f)} />
-      <p className={`${ui.muted} ${ui.smallText}`}>
-        Tips: bright even light, slow overlapping photos, extra angles under overhangs.
-      </p>
+      <ScanTips />
+    </details>
+  );
+}
+
+/** How to take a Polycam photo scan that comes out with the right shape. */
+function ScanTips() {
+  return (
+    <details className={`${s.tips} ${ui.smallText}`}>
+      <summary>How to scan a wall in Polycam</summary>
+      <ol>
+        <li>
+          Use <strong>Photo</strong> mode. Turn on all the gym lights. No flash, no sun patches.
+        </li>
+        <li>
+          Clear the area. Nobody climbing or walking in front of the wall, and don't move pads while scanning.
+        </li>
+        <li>Scan one wall section at a time, about 3 to 5 m wide.</li>
+        <li>
+          Stand about 2 m back. Walk sideways slowly and take a photo every small step, so each photo shares
+          most of the last one.
+        </li>
+        <li>
+          Do 3 passes along the wall: chest height, phone held high, then crouching low. Tilt the phone at the
+          wall.
+        </li>
+        <li>Under overhangs and around volumes, add photos from below and from both sides.</li>
+        <li>
+          Take a few photos from far back (4 to 5 m) with the whole section in view. This keeps the shape and
+          size right.
+        </li>
+        <li>Aim for 100–250 photos. Process at the highest detail, then crop away floor and ceiling.</li>
+        <li>
+          If the shape looks stretched or holds are in the wrong place, scan again with more photos and
+          smaller steps.
+        </li>
+      </ol>
     </details>
   );
 }
