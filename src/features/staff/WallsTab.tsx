@@ -241,15 +241,19 @@ function ScanTips() {
           most of the last one.
         </li>
         <li>
-          Do 3 passes along the wall: chest height, phone held high, then crouching low. Tilt the phone at the
-          wall.
+          Easier: use Polycam&apos;s <strong>video capture</strong>. It takes the photos for you, 1 every 2–3
+          seconds.
         </li>
+        <li>Scan the lower part of the wall: at least 20 photos.</li>
+        <li>Scan the middle part of the wall: at least 15 photos.</li>
+        <li>Scan the upper part of the wall: at least 10 photos. Tilt the phone up at the wall.</li>
         <li>Under overhangs and around volumes, add photos from below and from both sides.</li>
         <li>
           Take a few photos from far back (4 to 5 m) with the whole section in view. This keeps the shape and
           size right.
         </li>
         <li>Aim for 100–250 photos. Process at the highest detail, then crop away floor and ceiling.</li>
+        <li>Polycam takes about 10 minutes to process the photos into 3D.</li>
         <li>
           If the shape looks stretched or holds are in the wrong place, scan again with more photos and
           smaller steps.
