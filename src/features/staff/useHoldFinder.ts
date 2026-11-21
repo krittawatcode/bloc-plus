@@ -107,11 +107,14 @@ export function useHoldFinder(
         kind = 'volume';
       }
     }
+    // The circle stays where staff tapped unless the found hold is right there. Detection sometimes
+    // grabs a neighbouring hold; then the circle at the tap is the better start, and staff drag it.
+    if (found && found.c.distanceTo(p) > found.r) found = null;
     if (!found)
       return {
         kind,
         c: p,
-        r: kind === 'volume' ? 0.4 : 0.1,
+        r: kind === 'volume' ? 0.3 : 0.08,
         n,
         onId: null,
         miss: true,
@@ -162,6 +165,21 @@ export function useHoldFinder(
     setPending({ ...next, prev });
     return null;
   };
+
+  /** Staff dragged the circle: it follows the finger, keeping its size. The circle is cut as-is. */
+  const move = (p: Vector3, n: Vector3) =>
+    setPending(
+      (cur) =>
+        cur && {
+          ...cur,
+          c: p,
+          n,
+          tris: null,
+          miss: true,
+          tap: { p, n },
+          onId: cur.kind === 'marker' ? (hostAt(holds, p, cur.r)?.id ?? null) : cur.onId,
+        },
+    );
 
   /** Look again in the same spot for a different kind (hold, volume or marker). */
   const setKind = (kind: HoldKind) => {
@@ -219,10 +237,10 @@ export function useHoldFinder(
             ? 'Marker hold: check the small hold is inside the circle.'
             : 'A marker sits on a big hold or volume. Add that one to a route first.'
           : pending.miss
-            ? `Couldn't find the edge. Set the size with − and +, or tap again.`
-            : `Found a ${pending.kind}. Check the highlight covers all of it.`;
+            ? 'Drag the circle onto the hold, then set its size with − and +.'
+            : `Found a ${pending.kind}. Check the highlight, or drag the circle to move it.`;
 
-  return { pending, cut, tap, setKind, resize, cancel, save, saving: addHold.isPending, message };
+  return { pending, cut, tap, move, setKind, resize, cancel, save, saving: addHold.isPending, message };
 }
 
 export type HoldFinder = ReturnType<typeof useHoldFinder>;

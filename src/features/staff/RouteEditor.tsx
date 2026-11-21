@@ -164,6 +164,7 @@ export function RouteEditor() {
         const id = finder.tap(p, n);
         if (id) pick(id);
       },
+      previewMove: finder.move,
     },
     { zoomFirst: true },
   );

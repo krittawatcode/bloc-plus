@@ -69,6 +69,8 @@ export interface ViewerEvents {
   status?: (text: string) => void;
   legend?: (roles: MarkerRole[]) => void;
   hint?: (text: string) => void;
+  /** Staff dragged the hold circle (see `setPreview`) to a new spot on the scan. */
+  previewMove?: (point: Vector3, faceNormal: Vector3) => void;
 }
 
 export interface ViewState {
@@ -141,8 +143,11 @@ export class WallViewer {
     this.resizeObs = new ResizeObserver(() => this.resize());
     this.resizeObs.observe(container);
     const el = this.renderer.domElement;
-    el.addEventListener('pointerdown', this.onDown);
+    // Capture phase, so a press inside the hold circle can start a drag before the orbit controls see it.
+    el.addEventListener('pointerdown', this.onDown, { capture: true });
+    el.addEventListener('pointermove', this.onMove);
     el.addEventListener('pointerup', this.onUp);
+    el.addEventListener('pointercancel', this.onUp);
     this.resize();
     if (import.meta.env.VITE_E2E) (window as unknown as { __viewer: WallViewer }).__viewer = this;
   }
@@ -150,8 +155,11 @@ export class WallViewer {
   dispose() {
     this.token++;
     this.resizeObs.disconnect();
-    this.renderer.domElement.removeEventListener('pointerdown', this.onDown);
-    this.renderer.domElement.removeEventListener('pointerup', this.onUp);
+    const el = this.renderer.domElement;
+    el.removeEventListener('pointerdown', this.onDown, { capture: true });
+    el.removeEventListener('pointermove', this.onMove);
+    el.removeEventListener('pointerup', this.onUp);
+    el.removeEventListener('pointercancel', this.onUp);
     this.controls.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
@@ -760,6 +768,7 @@ export class WallViewer {
   setPreview(p: { geom: BufferGeometry | null; c: Vector3; r: number; n: Vector3 } | null) {
     if (this.previewGroup) this.scene.remove(this.previewGroup);
     this.previewGroup = null;
+    this.previewCircle = p ? { c: p.c.clone(), r: p.r } : null;
     if (p) {
       const acc = this.colour('--accent');
       const g = new Group();
@@ -794,11 +803,78 @@ export class WallViewer {
 
   /* ---------------- Taps ---------------- */
 
+  /** The hold circle on screen, which staff can drag along the scan. */
+  private previewCircle: { c: Vector3; r: number } | null = null;
+  private dragging: number | null = null;
+
+  /** True when (x, y) on screen is inside the hold circle (plus half a finger's width). */
+  private onCircle(x: number, y: number) {
+    const pc = this.previewCircle;
+    if (!pc) return false;
+    this.camera.updateMatrixWorld();
+    const rc = this.renderer.domElement.getBoundingClientRect();
+    const v = pc.c.clone().project(this.camera);
+    if (v.z > 1) return false;
+    const sx = ((v.x + 1) / 2) * rc.width + rc.left;
+    const sy = ((1 - v.y) / 2) * rc.height + rc.top;
+    const rPx = pc.r / this.pxToWorld(pc.c, 1);
+    return Math.hypot(x - sx, y - sy) <= rPx + TAP_PX / 2;
+  }
+
+  /** The scan surface under (x, y), with its normal turned towards the camera. */
+  private scanAt(x: number, y: number): { p: Vector3; n: Vector3 } | null {
+    if (this.pickMode !== 'scan' || !this.pickables.length) return null;
+    this.camera.updateMatrixWorld();
+    const rc = this.renderer.domElement.getBoundingClientRect();
+    this.ray.setFromCamera(
+      new Vector2(((x - rc.left) / rc.width) * 2 - 1, -((y - rc.top) / rc.height) * 2 + 1),
+      this.camera,
+    );
+    const hit = this.ray.intersectObjects(this.pickables, true)[0];
+    if (!hit) return null;
+    const n = hit.face ? hit.face.normal.clone() : new Vector3(0, 0, 1);
+    if (n.dot(this.viewDirAt(hit.point)) < 0) n.negate();
+    return { p: hit.point.clone(), n };
+  }
+
   private onDown = (e: PointerEvent) => {
+    // Press inside the hold circle: move the circle instead of turning the wall.
+    if (e.isPrimary && this.events.previewMove && this.onCircle(e.clientX, e.clientY)) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      this.dragging = e.pointerId;
+      this.controls.enabled = false;
+      this.renderer.domElement.setPointerCapture(e.pointerId);
+      this.down = null;
+      return;
+    }
+    // A second finger while dragging: stop dragging so the controls can pinch.
+    if (this.dragging != null && e.pointerId !== this.dragging) this.endDrag();
     this.down = { x: e.clientX, y: e.clientY, t: performance.now() };
   };
 
+  private onMove = (e: PointerEvent) => {
+    if (this.dragging !== e.pointerId) return;
+    const hit = this.scanAt(e.clientX, e.clientY);
+    if (hit) this.events.previewMove?.(hit.p, hit.n);
+  };
+
+  private endDrag() {
+    if (this.dragging == null) return;
+    try {
+      this.renderer.domElement.releasePointerCapture(this.dragging);
+    } catch {
+      /* already released */
+    }
+    this.dragging = null;
+    this.controls.enabled = true;
+  }
+
   private onUp = (e: PointerEvent) => {
+    if (this.dragging === e.pointerId) {
+      this.endDrag();
+      return;
+    }
     const d = this.down;
     this.down = null;
     if (!d) return;

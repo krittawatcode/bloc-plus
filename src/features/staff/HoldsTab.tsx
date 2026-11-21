@@ -86,6 +86,7 @@ function WallHolds({ wall }: { wall: Wall }) {
       scanTap: (p, n) => {
         setSelected(finder.tap(p, n));
       },
+      previewMove: finder.move,
     },
     { zoomFirst: true },
   );

@@ -73,7 +73,7 @@ export function useStageMessage(text: string | null) {
 
 /** Listen to taps on the 3D view while this component is mounted. */
 export function useViewerEvents(
-  handlers: Pick<ViewerEvents, 'holdTap' | 'scanTap'>,
+  handlers: Pick<ViewerEvents, 'holdTap' | 'scanTap' | 'previewMove'>,
   options: { zoomFirst?: boolean } = {},
 ) {
   const viewer = useViewer();
@@ -84,10 +84,13 @@ export function useViewerEvents(
     if (!viewer) return;
     viewer.events.holdTap = (id) => ref.current.holdTap?.(id);
     viewer.events.scanTap = (p, n) => ref.current.scanTap?.(p, n);
+    // Dragging only starts on a hold circle, which only hold-finding screens show.
+    viewer.events.previewMove = (p, n) => ref.current.previewMove?.(p, n);
     viewer.zoomFirst = zoomFirst;
     return () => {
       viewer.events.holdTap = undefined;
       viewer.events.scanTap = undefined;
+      viewer.events.previewMove = undefined;
       viewer.zoomFirst = false;
     };
   }, [viewer, zoomFirst]);
