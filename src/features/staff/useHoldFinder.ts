@@ -237,8 +237,8 @@ export function useHoldFinder(
             ? 'Marker hold: check the small hold is inside the circle.'
             : 'A marker sits on a big hold or volume. Add that one to a route first.'
           : pending.miss
-            ? 'Drag the circle onto the hold, then set its size with − and +.'
-            : `Found a ${pending.kind}. Check the highlight, or drag the circle to move it.`;
+            ? 'Press and hold the circle, then drag it onto the hold. Set its size with − and +.'
+            : `Found a ${pending.kind}. Check the highlight. To move it, press and hold the circle, then drag.`;
 
   return { pending, cut, tap, move, setKind, resize, cancel, save, saving: addHold.isPending, message };
 }

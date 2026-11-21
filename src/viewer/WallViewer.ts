@@ -85,6 +85,8 @@ export interface Theme {
 const ZAX = new Vector3(0, 0, 1);
 /** A finger is ~40 px wide. Taps within this distance of a hold pick it. */
 export const TAP_PX = 28;
+/** Press and hold this long on the hold circle to start moving it. */
+const HOLD_MS = 260;
 /** Below this many pixels for 10 cm, holds are too small to tap: zoom in first. */
 const MIN_PX_PER_10CM = 22;
 
@@ -154,6 +156,7 @@ export class WallViewer {
 
   dispose() {
     this.token++;
+    this.cancelPress();
     this.resizeObs.disconnect();
     const el = this.renderer.domElement;
     el.removeEventListener('pointerdown', this.onDown, { capture: true });
@@ -837,23 +840,53 @@ export class WallViewer {
     return { p: hit.point.clone(), n };
   }
 
+  /** A finger resting on the hold circle: it becomes a drag if it stays still for HOLD_MS. */
+  private press: { id: number; x: number; y: number; timer: number } | null = null;
+
+  private cancelPress() {
+    if (this.press) window.clearTimeout(this.press.timer);
+    this.press = null;
+  }
+
   private onDown = (e: PointerEvent) => {
-    // Press inside the hold circle: move the circle instead of turning the wall.
-    if (e.isPrimary && this.events.previewMove && this.onCircle(e.clientX, e.clientY)) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      this.dragging = e.pointerId;
-      this.controls.enabled = false;
-      this.renderer.domElement.setPointerCapture(e.pointerId);
-      this.down = null;
-      return;
+    // A second finger: stop any circle drag (or a pending one) so the controls can pinch. This runs
+    // before the controls see the finger, so they are switched back on in time.
+    if (!e.isPrimary || (this.dragging != null && e.pointerId !== this.dragging)) {
+      this.cancelPress();
+      this.endDrag();
     }
-    // A second finger while dragging: stop dragging so the controls can pinch.
-    if (this.dragging != null && e.pointerId !== this.dragging) this.endDrag();
+    // Press and hold inside the hold circle to move it. A finger that moves straight away turns the
+    // wall as usual, so a circle bigger than the screen never traps the view.
+    if (e.isPrimary && this.events.previewMove && this.onCircle(e.clientX, e.clientY)) {
+      this.cancelPress();
+      const id = e.pointerId;
+      this.press = {
+        id,
+        x: e.clientX,
+        y: e.clientY,
+        timer: window.setTimeout(() => this.startDrag(id), HOLD_MS),
+      };
+    }
     this.down = { x: e.clientX, y: e.clientY, t: performance.now() };
   };
 
+  private startDrag(id: number) {
+    this.press = null;
+    this.dragging = id;
+    this.controls.enabled = false;
+    this.down = null;
+    try {
+      this.renderer.domElement.setPointerCapture(id);
+    } catch {
+      /* the finger already lifted */
+    }
+    navigator.vibrate?.(12);
+    this.events.hint?.('Moving the circle');
+  }
+
   private onMove = (e: PointerEvent) => {
+    const pr = this.press;
+    if (pr && pr.id === e.pointerId && Math.hypot(e.clientX - pr.x, e.clientY - pr.y) > 8) this.cancelPress();
     if (this.dragging !== e.pointerId) return;
     const hit = this.scanAt(e.clientX, e.clientY);
     if (hit) this.events.previewMove?.(hit.p, hit.n);
@@ -871,6 +904,7 @@ export class WallViewer {
   }
 
   private onUp = (e: PointerEvent) => {
+    if (this.press?.id === e.pointerId) this.cancelPress();
     if (this.dragging === e.pointerId) {
       this.endDrag();
       return;
