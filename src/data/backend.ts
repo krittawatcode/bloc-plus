@@ -1,4 +1,4 @@
-import type { Comment, GymSettings, Hold, RatingStats, Route, Wall } from '@/domain/types';
+import type { Comment, GymSettings, Hold, RatingStats, Route, Wall, WallView } from '@/domain/types';
 
 export interface Session {
   email: string;
@@ -54,6 +54,8 @@ export interface Backend {
     ghost: Float32Array,
   ): Promise<Wall>;
   renameWall(wall: Wall, name: string): Promise<Wall>;
+  /** Save how the 3D wall opens, or clear it with null. */
+  setWallView(wall: Wall, view: WallView | null): Promise<Wall>;
   /**
    * Reset a wall: the new scan becomes a new wall with the same name. The old wall is kept but
    * retired, and all its routes are archived (sends and comments stay, so stats can be seen later).

@@ -50,6 +50,7 @@ React 19 + TypeScript (strict, `noUncheckedIndexedAccess`) + Vite 7, React Route
 - **Start hands**: each start hold can say Left, Right or Both (both hands on one hold); none means any hand. Stored per route in `routes.start_hands` (`Route.hands`), set with `pickHold()` in the editor, shown as START L / START R / START L+R labels and `startNote()` text. Extras copy the normal route's hands.
 - **Feet are optional.** Default is any foot hold. Holds tagged Feet are feet-only; the tag "Marked feet only" (`STRICT_FEET`) makes it competition style. `feetNote()` gives the climber-facing text.
 - The built-in **Demo wall** (called "practice" in code: `PRACTICE_WALL_ID`, wall id `practice`, hold ids `p*`, `v1–v3`) is hidden from climbers; signed-in staff see it as "Demo wall · staff only" (everyone does in demo mode).
+- **Start view**: staff can save how a wall's 3D view opens (Walls › Start view → `walls.default_view`, `Wall.view`). Whole-wall scenes open on it and Reset view returns to it; route views frame the route from the same direction. Turning the scan clears it.
 - **Wall reset** = upload a new scan for a wall. It becomes a new wall row with the same name; the old wall gets `retired_at`/`replaced_by` and all its routes `archived`. Nothing is deleted: staff see it under Walls › Past walls with sends and comments per route. Climbers and pickers only use current walls (`isCurrentWall`).
 - Comments are always shown with the route they belong to (`RouteTag`). Lists that mix routes group comments under one label per route.
 

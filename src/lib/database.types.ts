@@ -30,6 +30,7 @@ export type Database = {
           created_at: string;
           retired_at: string | null;
           replaced_by: string | null;
+          default_view: Json | null;
         };
         Insert: {
           id: string;
@@ -42,6 +43,7 @@ export type Database = {
           created_at?: string;
           retired_at?: string | null;
           replaced_by?: string | null;
+          default_view?: Json | null;
         };
         Update: {
           id?: string;
@@ -54,6 +56,7 @@ export type Database = {
           created_at?: string;
           retired_at?: string | null;
           replaced_by?: string | null;
+          default_view?: Json | null;
         };
         Relationships: [];
       };

@@ -29,7 +29,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import type { Hold, HoldMap, Role, StartHand } from '@/domain/types';
+import type { Hold, HoldMap, Role, StartHand, WallView } from '@/domain/types';
 import { PRACTICE_WALL_ID } from '@/domain/types';
 import { START_LABEL, withMarkers } from '@/domain/routes';
 import { plural } from '@/lib/format';
@@ -45,6 +45,8 @@ export interface HoldSource {
   holds(wallId: string): Hold[];
   piece(hold: Hold): Promise<BufferGeometry>;
   ghost(wallId: string): Promise<Float32Array | null>;
+  /** The start view staff saved for this wall, if any. */
+  view(wallId: string): WallView | null;
   /** The full scan, drawn dimmed behind holds. Null when the wall has no scan. */
   scan(wallId: string): Promise<LoadedScan | null>;
 }
@@ -187,7 +189,10 @@ export class WallViewer {
     const { h } = this.size();
     const avail = Math.max(0.45, (h - this.bottomPad) / h);
     const dist = Math.max(s.y / 2 / (t * avail), s.x / 2 / (t * this.camera.aspect)) * 1.15 + s.z / 2 + 0.3;
-    const dir = new Vector3(side, 0.1, 1).normalize();
+    // Look from the wall's saved start view when there is one, so routes face the same way.
+    const dir = this.home
+      ? new Vector3(...this.home.pos).sub(new Vector3(...this.home.target)).normalize()
+      : new Vector3(side, 0.1, 1).normalize();
     this.camera.position.copy(c).addScaledVector(dir, dist);
     this.camera.near = Math.max(0.01, dist / 300);
     this.camera.far = dist * 40;
@@ -198,7 +203,36 @@ export class WallViewer {
 
   resetView() {
     if (this.lastFit) this.fit(this.lastFit.box, this.lastFit.side);
+    if (this.homeHere) this.goHome();
     this.render();
+  }
+
+  /** The current wall's saved start view, and whether this scene opens on it (whole-wall scenes). */
+  private home: WallView | null = null;
+  private homeHere = false;
+
+  private goHome() {
+    if (!this.home) return;
+    this.camera.position.set(...this.home.pos);
+    this.controls.target.set(...this.home.target);
+    const d = this.camera.position.distanceTo(this.controls.target);
+    this.camera.near = Math.max(0.01, d / 300);
+    this.camera.far = Math.max(this.camera.far, d * 40);
+    this.camera.updateProjectionMatrix();
+    this.controls.update();
+  }
+
+  /** The current camera, to save as a wall's start view. */
+  currentView(): WallView {
+    const p = this.camera.position;
+    const t = this.controls.target;
+    return { pos: [p.x, p.y, p.z], target: [t.x, t.y, t.z] };
+  }
+
+  /** Use a new start view for this wall right away (after staff save or clear it). */
+  setHome(wallId: string, view: WallView | null) {
+    if (wallId !== this.wallId) return;
+    this.home = view;
   }
 
   saveView(): ViewState {
@@ -419,10 +453,13 @@ export class WallViewer {
     if (spec.kind === 'scan') {
       this.newScene();
       this.wallId = spec.wallId;
+      this.home = this.source.view(spec.wallId);
+      this.homeHere = true;
       for (const m of spec.scan.meshes) this.scene.add(m);
       this.pickables = spec.scan.meshes.slice();
       this.pickMode = 'scan';
       this.fit(spec.scan.box, 0.2);
+      this.goHome();
       this.setMarkers(spec.markers);
       this.status(
         `Full scan · ${spec.scan.tris.toLocaleString('en-US')} triangles · ${plural(this.holdsOf(spec.wallId).length, 'hold')}`,
@@ -444,6 +481,8 @@ export class WallViewer {
     }
     this.newScene();
     this.wallId = wallId;
+    this.home = wallId === PRACTICE_WALL_ID ? null : this.source.view(wallId);
+    this.homeHere = spec.kind === 'wall';
     const fg = this.colour('--fg');
     // Dark themes need a stronger wall outline and a rim around route holds to stay readable.
     const outline = parseFloat(this.theme.css('--outline-strength')) || 1;
@@ -516,6 +555,7 @@ export class WallViewer {
       if (box.isEmpty())
         box.copy(routeBox.isEmpty() ? new Box3(new Vector3(-2, 0, -0.5), new Vector3(2, 3.5, 1)) : routeBox);
       this.fit(box, 0.25);
+      this.goHome();
       this.setMarkers(spec.markers);
       this.status(`${shown} holds · ${this.countTris().toLocaleString('en-US')} triangles`);
     }

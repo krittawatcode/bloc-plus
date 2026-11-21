@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Comment, GymSettings, Hold, RatingStats, Route, Wall } from '@/domain/types';
+import type { Comment, GymSettings, Hold, RatingStats, Route, Wall, WallView } from '@/domain/types';
 import { device } from '@/lib/device';
 import type { NewComment } from './backend';
 import { useBackend } from './context';
@@ -122,6 +122,16 @@ export function useRenameWall() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { wall: Wall; name: string }) => b.renameWall(v.wall, v.name),
+    onSuccess: (wall) =>
+      qc.setQueryData<Wall[]>(keys.walls, (old = []) => old.map((w) => (w.id === wall.id ? wall : w))),
+  });
+}
+
+export function useSetWallView() {
+  const b = useBackend();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { wall: Wall; view: WallView | null }) => b.setWallView(v.wall, v.view),
     onSuccess: (wall) =>
       qc.setQueryData<Wall[]>(keys.walls, (old = []) => old.map((w) => (w.id === wall.id ? wall : w))),
   });

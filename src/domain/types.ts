@@ -51,6 +51,14 @@ export interface Wall {
   retiredAt: string | null;
   /** The wall that replaced this one. */
   replacedBy: string | null;
+  /** How the 3D wall opens, saved by staff. Null: fit the whole wall. */
+  view: WallView | null;
+}
+
+/** A camera position and the point it looks at, in scan coordinates (metres). */
+export interface WallView {
+  pos: Vec3;
+  target: Vec3;
 }
 
 /** A wall climbers can see now (not replaced by a reset). */

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ROLE_NAME } from '@/domain/routes';
-import type { Hold } from '@/domain/types';
+import type { Hold, Wall } from '@/domain/types';
 import { useBackend } from '@/data/context';
 import { keys } from '@/data/queries';
 import { useToast } from '@/components/toastContext';
@@ -69,6 +69,7 @@ export function Stage() {
     const source: HoldSource = {
       holds: (wallId) => (qc.getQueryData<Hold[]>(keys.holds) ?? []).filter((h) => h.wallId === wallId),
       piece: async (hold) => decodePiece(await backend.fetchScanFile(hold.piecePath!)),
+      view: (wallId) => qc.getQueryData<Wall[]>(keys.walls)?.find((w) => w.id === wallId)?.view ?? null,
       ghost: async (wallId) => {
         const wall = await wallOf(wallId);
         return wall?.ghostPath ? new Float32Array(await backend.fetchScanFile(wall.ghostPath)) : null;

@@ -11,6 +11,7 @@ import type {
   RouteType,
   Vec3,
   Wall,
+  WallView,
 } from '@/domain/types';
 import type { Database, Json } from '@/lib/database.types';
 
@@ -28,6 +29,7 @@ export const wallFromRow = (r: T['walls']['Row']): Wall => ({
   createdAt: r.created_at,
   retiredAt: r.retired_at,
   replacedBy: r.replaced_by,
+  view: (r.default_view as WallView | null) ?? null,
 });
 
 export const holdFromRow = (r: T['holds']['Row']): Hold => ({

@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Comment, GymSettings, Hold, Route, Wall } from '@/domain/types';
-import type { Database } from '@/lib/database.types';
+import type { Comment, GymSettings, Hold, Route, Wall, WallView } from '@/domain/types';
+import type { Database, Json } from '@/lib/database.types';
 import { uid } from '@/lib/format';
 import { BackendError, type Backend, type NewComment, type Session } from './backend';
 import {
@@ -179,13 +179,30 @@ export class SupabaseBackend implements Backend {
     const row = must(
       await this.sb
         .from('walls')
-        .update({ ...o, ghost_path: ghostPath })
+        // Turning the scan makes a saved view point the wrong way, so it is cleared.
+        .update({
+          ...o,
+          ghost_path: ghostPath,
+          ...(o.upright !== wall.upright || o.spin !== wall.spin ? { default_view: null } : {}),
+        })
         .eq('id', wall.id)
         .select()
         .single(),
     );
     await this.remove('scans', [wall.ghostPath]);
     return wallFromRow(row);
+  }
+
+  async setWallView(wall: Wall, view: WallView | null) {
+    const rows = must(
+      await this.sb
+        .from('walls')
+        .update({ default_view: view as unknown as Json })
+        .eq('id', wall.id)
+        .select(),
+    );
+    if (!rows[0]) throw new BackendError('The view was not saved. Check you are signed in as staff.');
+    return wallFromRow(rows[0]);
   }
 
   async renameWall(wall: Wall, name: string) {

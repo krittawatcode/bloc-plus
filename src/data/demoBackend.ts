@@ -1,7 +1,7 @@
 import { defaultGrading } from '@/domain/grading';
 import { DEFAULT_TAGS } from '@/domain/routes';
 import { PRACTICE_ROUTES } from '@/domain/practice';
-import type { Comment, GymSettings, Hold, Route, Wall } from '@/domain/types';
+import type { Comment, GymSettings, Hold, Route, Wall, WallView } from '@/domain/types';
 import { uid } from '@/lib/format';
 import { BackendError, type Backend, type NewComment, type Session } from './backend';
 
@@ -131,7 +131,8 @@ export class DemoBackend implements Backend {
     return structuredClone({ ...this.t.settings, tags: this.t.settings.tags ?? [...DEFAULT_TAGS] });
   }
   async listWalls() {
-    return structuredClone(this.t.walls);
+    // Walls saved before start views existed have none.
+    return structuredClone(this.t.walls.map((w) => ({ ...w, view: w.view ?? null })));
   }
   async listHolds() {
     return structuredClone(this.t.holds);
@@ -204,6 +205,7 @@ export class DemoBackend implements Backend {
       createdAt: new Date().toISOString(),
       retiredAt: null,
       replacedBy: null,
+      view: null,
     };
     this.t.walls.push(wall);
     this.save();
@@ -217,7 +219,18 @@ export class DemoBackend implements Backend {
     const w = this.t.walls.find((x) => x.id === wall.id);
     if (!w) throw new BackendError('That wall no longer exists.');
     await deleteFiles([w.ghostPath ? `scans/${w.ghostPath}` : null]);
-    Object.assign(w, o, { ghostPath });
+    // Turning the scan makes a saved view point the wrong way, so it is cleared.
+    const turned = o.upright !== w.upright || o.spin !== w.spin;
+    Object.assign(w, o, { ghostPath }, turned ? { view: null } : {});
+    this.save();
+    return structuredClone(w);
+  }
+
+  async setWallView(wall: Wall, view: WallView | null) {
+    this.requireStaff();
+    const w = this.t.walls.find((x) => x.id === wall.id);
+    if (!w) throw new BackendError('That wall no longer exists.');
+    w.view = view;
     this.save();
     return structuredClone(w);
   }

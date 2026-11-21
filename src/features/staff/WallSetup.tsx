@@ -1,7 +1,7 @@
 import { ui } from '@/components/uiStyles';
 import { useToast } from '@/components/toastContext';
 import { friendly } from '@/data/backend';
-import { useReorientWall } from '@/data/queries';
+import { useReorientWall, useSetWallView } from '@/data/queries';
 import type { Wall } from '@/domain/types';
 import { buildScan, ghostPoints, type LoadedScan } from '@/viewer/scan';
 import { StageTools } from '@/viewer/stage';
@@ -55,6 +55,7 @@ export function WallSetup({ wall, locked }: { wall: Wall; locked: boolean }) {
           Reset view
         </button>
       </StageTools>
+      {scan && <StartView wall={wall} />}
       {scanQuery.error ? (
         <div className={ui.actions}>
           <button type="button" className={`${ui.btn} ${ui.small}`} onClick={() => void scanQuery.refetch()}>
@@ -124,6 +125,55 @@ export function RebuildOutline({ wall }: { wall: Wall }) {
         >
           {reorient.isPending ? 'Rebuilding…' : 'Rebuild outline'}
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** Save how the 3D wall opens: for staff and climbers, on Reset view, and the angle routes are seen from. */
+function StartView({ wall }: { wall: Wall }) {
+  const viewer = useViewer();
+  const toast = useToast();
+  const setView = useSetWallView();
+  const save = (view: Wall['view']) =>
+    setView.mutate(
+      { wall, view },
+      {
+        onSuccess: (w) => {
+          viewer?.setHome(w.id, w.view);
+          viewer?.resetView();
+          toast(w.view ? 'Start view saved.' : 'Start view cleared. The whole wall fits on screen.');
+        },
+        onError: (e) => toast(friendly(e)),
+      },
+    );
+  return (
+    <div className={ui.field}>
+      <span className={ui.label}>Start view</span>
+      <p className={`${ui.muted} ${ui.smallText}`}>
+        {wall.view
+          ? 'The wall opens from the saved view. To change it, turn and zoom the wall above, then save again.'
+          : 'Turn and zoom the wall above the way it should open, then save. Routes are shown from the same side.'}
+      </p>
+      <div className={ui.actions}>
+        <button
+          type="button"
+          className={`${ui.btn} ${ui.small} ${ui.primary}`}
+          disabled={!viewer || setView.isPending}
+          onClick={() => viewer && save(viewer.currentView())}
+        >
+          {setView.isPending ? 'Saving…' : 'Save this view'}
+        </button>
+        {wall.view && (
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.small}`}
+            disabled={setView.isPending}
+            onClick={() => save(null)}
+          >
+            Fit whole wall
+          </button>
+        )}
       </div>
     </div>
   );
