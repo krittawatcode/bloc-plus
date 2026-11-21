@@ -37,7 +37,8 @@ import type { LoadedScan } from './scan';
 import { gridFromPoints, type GridWall } from './gridWall';
 import { PRACTICE_BOX, PRACTICE_HOLDS, buildPracticeHold, practiceWallObjects } from './practiceWall';
 
-export type MarkerRole = Role | 'tag' | 'marker';
+/** `picked`: the saved hold staff tapped (Holds tab). It has no label and is not in the legend. */
+export type MarkerRole = Role | 'tag' | 'marker' | 'picked';
 export type MarkerMap = Record<string, MarkerRole>;
 
 /** Where the viewer gets hold data and files from. Implemented by the data layer. */
@@ -90,6 +91,7 @@ const ROLE_TOKEN: Record<MarkerRole, string> = {
   off: '--off',
   tag: '--accent',
   marker: '--top',
+  picked: '--start',
 };
 const LEGEND_ORDER: MarkerRole[] = ['start', 'hand', 'top', 'foot', 'off', 'tag', 'marker'];
 

@@ -14,6 +14,7 @@ import s from './Staff.module.css';
 const TABS = [
   ['routes', 'Routes'],
   ['walls', 'Walls'],
+  ['holds', 'Holds'],
   ['qr', 'QR codes'],
   ['comments', 'Comments'],
   ['gym', 'Gym'],

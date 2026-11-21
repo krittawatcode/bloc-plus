@@ -161,6 +161,7 @@ function roleVar(r: MarkerRole) {
       off: '--off',
       tag: '--accent',
       marker: '--top',
+      picked: '--start',
     } as const
   )[r];
 }

@@ -17,13 +17,14 @@ import {
   tally,
   validateRoute,
 } from '@/domain/routes';
-import type { HoldKind, Role, Route, RouteType, StartHand } from '@/domain/types';
+import type { Role, Route, RouteType, StartHand } from '@/domain/types';
 import { plural, uid } from '@/lib/format';
 import { holdsOfWall } from '@/viewer/practiceWall';
 import { StageDock, StageTools } from '@/viewer/stage';
 import { useStageScene, useViewer, useViewerEvents } from '@/viewer/stageContext';
 import { useStaffWall } from './staffWall';
 import { TagPicker } from './TagPicker';
+import { FoundHoldDock } from './FoundHoldDock';
 import { useHoldFinder } from './useHoldFinder';
 import { useLoadedScan } from './useScan';
 import s from './Staff.module.css';
@@ -228,57 +229,11 @@ export function RouteEditor() {
       </StageTools>
       <StageDock>
         {finder.pending ? (
-          <>
-            <p className={d.msg}>{finder.message}</p>
-            <div className={d.seg} role="group" aria-label="What was tapped">
-              {(['hold', 'volume', 'marker'] as HoldKind[]).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  aria-pressed={finder.pending?.kind === k}
-                  onClick={() => finder.setKind(k)}
-                  disabled={finder.saving}
-                >
-                  {k[0]!.toUpperCase() + k.slice(1)}
-                </button>
-              ))}
-            </div>
-            <div className={d.row}>
-              <button
-                type="button"
-                className={d.btn}
-                aria-label="Smaller"
-                onClick={() => finder.resize(-1)}
-                disabled={finder.saving}
-              >
-                −
-              </button>
-              <span className={d.size}>{Math.round(finder.pending.r * 100)} cm</span>
-              <button
-                type="button"
-                className={d.btn}
-                aria-label="Bigger"
-                onClick={() => finder.resize(1)}
-                disabled={finder.saving}
-              >
-                +
-              </button>
-              <span className={d.spacer} />
-              <button type="button" className={d.btn} onClick={finder.cancel} disabled={finder.saving}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={d.primary}
-                onClick={() => void addFound()}
-                disabled={
-                  !finder.cut || finder.saving || (finder.pending.kind === 'marker' && !finder.pending.onId)
-                }
-              >
-                Add as {SHORT_ROLE[role]}
-              </button>
-            </div>
-          </>
+          <FoundHoldDock
+            finder={finder}
+            addLabel={`Add as ${SHORT_ROLE[role]}`}
+            onAdd={() => void addFound()}
+          />
         ) : draft.type !== 'elim' ? (
           <>
             <div className={d.seg} role="group" aria-label="Role to place">

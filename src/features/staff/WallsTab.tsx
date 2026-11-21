@@ -127,7 +127,7 @@ function ScannedWall({ wall }: { wall: Wall }) {
       <p className={ui.note}>
         {routes.length
           ? 'Set routes in the Routes tab.'
-          : 'Next: set routes in the Routes tab. You pick the holds on the wall while setting each route.'}
+          : 'Next: add holds in the Holds tab, or pick them while setting routes in the Routes tab.'}
       </p>
       <details className={s.box}>
         <summary>More</summary>

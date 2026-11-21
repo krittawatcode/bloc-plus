@@ -1,6 +1,6 @@
 import type { Hold, HoldMap, Role, Route, RouteType, StartHand } from './types';
 
-export const ROLE_NAME: Record<Role | 'tag' | 'marker', string> = {
+export const ROLE_NAME: Record<Role | 'tag' | 'marker' | 'picked', string> = {
   start: 'Start',
   hand: 'Hand',
   top: 'Top',
@@ -8,6 +8,7 @@ export const ROLE_NAME: Record<Role | 'tag' | 'marker', string> = {
   off: 'Crossed out',
   tag: 'Tagged',
   marker: 'Marker hold',
+  picked: 'Picked',
 };
 
 export const TYPE_NAME: Record<RouteType, string> = {

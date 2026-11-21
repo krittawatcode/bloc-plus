@@ -14,6 +14,7 @@ import { RoutesTab } from '@/features/staff/RoutesTab';
 import { StartTab } from '@/features/staff/StartTab';
 import { RouteEditor } from '@/features/staff/RouteEditor';
 import { WallsTab } from '@/features/staff/WallsTab';
+import { HoldsTab } from '@/features/staff/HoldsTab';
 import { QrTab } from '@/features/staff/QrTab';
 import { CommentsTab } from '@/features/staff/CommentsTab';
 import { GymTab } from '@/features/staff/GymTab';
@@ -49,6 +50,7 @@ export function App() {
                     <Route path="routes/new/:baseId/:type" element={<RouteEditor />} />
                     <Route path="routes/:routeId" element={<RouteEditor />} />
                     <Route path="walls" element={<WallsTab />} />
+                    <Route path="holds" element={<HoldsTab />} />
                     <Route path="qr" element={<QrTab />} />
                     <Route path="comments" element={<CommentsTab />} />
                     <Route path="gym" element={<GymTab />} />

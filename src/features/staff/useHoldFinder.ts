@@ -218,3 +218,5 @@ export function useHoldFinder(
 
   return { pending, cut, tap, setKind, resize, cancel, save, saving: addHold.isPending, message };
 }
+
+export type HoldFinder = ReturnType<typeof useHoldFinder>;
