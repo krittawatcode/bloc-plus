@@ -28,6 +28,8 @@ export interface PendingHold {
 }
 
 const toVec = (v: Vector3): Vec3 => [v.x, v.y, v.z];
+/** A "hold" this big (radius, metres) is probably part of a volume. */
+const BIG_HOLD = 0.12;
 const at = (h: Hold) => new Vector3(...h.c);
 
 /** The smallest saved hold whose middle is near p, if any. Small holds win, so a marker beats its volume. */
@@ -96,10 +98,14 @@ export function useHoldFinder(
     }
     const tol = Math.min(0.2, Math.max(0.04, viewer.pxToWorld(p, TAP_PX)));
     let found = detectHold(scan, p, kind, tol, viewer.viewDirAt(p));
-    // Long or big holds are often too large for the hold search: try again as a volume.
-    if (!found && kind === 'hold') {
-      found = detectHold(scan, p, 'volume', tol, viewer.viewDirAt(p));
-      if (found) kind = 'volume';
+    // Long or big holds are often too large for the hold search: try again as a volume. A very big
+    // "hold" is usually only part of a volume (the hold search stops at hold size), so check that too.
+    if (kind === 'hold' && (!found || found.r >= BIG_HOLD)) {
+      const vol = detectHold(scan, p, 'volume', tol, viewer.viewDirAt(p));
+      if (vol && (!found || (vol.r > found.r * 1.3 && vol.c.distanceTo(found.c) < vol.r))) {
+        found = vol;
+        kind = 'volume';
+      }
     }
     if (!found)
       return {
