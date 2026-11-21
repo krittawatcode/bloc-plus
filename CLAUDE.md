@@ -4,6 +4,7 @@ Phone-first web app for **Bloc City Climbing Gym** (one gym per deployment). Sta
 
 Live: https://krittawatcode.github.io/bloc-plus/ (GitHub Pages, deployed by `.github/workflows/deploy.yml` on push to `main`).
 a
+
 ## Git
 
 - **Never commit or push.** The owner commits and pushes himself. Leave changes uncommitted in the working tree, run the checks below, and end with a short summary of the changed files and a suggested commit message.
