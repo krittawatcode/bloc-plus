@@ -96,7 +96,10 @@ export function detectHold(
   const facing = (i: number, v: Vector3) =>
     Math.abs(N[i * 3]! * v.x + N[i * 3 + 1]! * v.y + N[i * 3 + 2]! * v.z);
 
-  for (let attempt = 0; attempt < 5 && rin <= rmax; attempt++, rin *= 1.5) {
+  const WIDER = 'wider' as const,
+    NONE = 'none' as const;
+  /** One try with the base fitted in a ring from `rin` to 1.8 × `rin` around the tap. */
+  const attempt = (rin: number, flatOnly: boolean): Detected | typeof WIDER | typeof NONE => {
     const outer2 = (rin * 1.8) ** 2,
       inner2 = rin * rin;
     const inner: number[] = [];
@@ -108,7 +111,8 @@ export function detectHold(
       const d2 = dx * dx + dy * dy + dz * dz;
       if (d2 < outer2) (d2 < inner2 ? inner : ring).push(i);
     }
-    if (ring.length < 40 || !inner.length) continue;
+    if (ring.length < 40 || !inner.length) return WIDER;
+    const ringAll = ring;
     const towardsView = ring.filter((i) => facing(i, view) > 0.45);
     if (towardsView.length >= 40) ring = towardsView;
     fit(ring);
@@ -135,9 +139,19 @@ export function detectHold(
     }
     mean /= kept.length;
     const sigma = Math.sqrt(Math.max(0, sq / kept.length - mean * mean));
+    if (flatOnly) {
+      // Only trust a small patch as the base if it is a flat face (wall or volume), not the curve of a hold.
+      let all = 0,
+        flat = 0;
+      for (const i of ringAll) {
+        all += A[i]!;
+        if (facing(i, nrm) > 0.9) flat += A[i]!;
+      }
+      if (sigma > 0.004 || flat < 0.55 * all) return WIDER;
+    }
     const thresh = Math.max(0.006, 3 * sigma) + mean;
     const raised = inner.filter((i) => dist(i) > thresh);
-    if (!raised.length) return null;
+    if (!raised.length) return NONE;
 
     const lateral = (i: number) => {
       const dx = C[i * 3]! - p.x,
@@ -155,7 +169,7 @@ export function detectHold(
         seed = i;
       }
     }
-    if (seed < 0) return null;
+    if (seed < 0) return NONE;
 
     const areas = raised.map((i) => A[i]!).sort((x, y) => x - y);
     const link = Math.max(0.025, 2.2 * Math.sqrt(areas[areas.length >> 1]!));
@@ -194,7 +208,7 @@ export function detectHold(
             }
           }
     }
-    if (touchesEdge) continue;
+    if (touchesEdge) return WIDER;
 
     const centre = new Vector3();
     let w = 0;
@@ -213,8 +227,23 @@ export function detectHold(
       r = Math.max(r, Math.sqrt(dx * dx + dy * dy + dz * dz));
     }
     r += Math.min(0.03, link * 0.6);
-    if (r > (kind === 'volume' ? 1.0 : 0.4)) return null;
+    if (r > (kind === 'volume' ? 1.0 : 0.4)) return NONE;
     return { c: centre, r, n: nrm.clone(), tris: [...seen] };
+  };
+
+  // Holds and markers: first look at the surface right under the tap. On a volume that is the volume's
+  // face, so a small hold bolted on it stands out from the volume instead of the whole volume standing
+  // out from the wall. Only used when that patch is flat; otherwise fall through to the wall check.
+  if (kind !== 'volume') {
+    for (let r = Math.max(0.06, tol + 0.03); r < rin; r *= 1.4) {
+      const got = attempt(r, true);
+      if (typeof got === 'object') return got;
+    }
+  }
+  for (let tries = 0; tries < 5 && rin <= rmax; tries++, rin *= 1.5) {
+    const got = attempt(rin, false);
+    if (got === NONE) return null;
+    if (got !== WIDER) return got;
   }
   return null;
 }

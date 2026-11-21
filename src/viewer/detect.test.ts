@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   Box3,
+  BoxGeometry,
   BufferGeometry,
   Color,
   Float32BufferAttribute,
@@ -139,5 +140,59 @@ describe('hold files', () => {
 
   it('rejects a damaged file', () => {
     expect(() => decodePiece(new ArrayBuffer(10))).toThrow(/damaged/);
+  });
+});
+
+/** A wall with a big angled volume (60 × 60 cm, tilted 25°) and a small hold bolted on its face. */
+function holdOnVolume() {
+  const scan = fakeScan([]);
+  const add = (g: BufferGeometry) => {
+    const geom = g.toNonIndexed();
+    geom.computeVertexNormals();
+    const n = geom.getAttribute('position').count;
+    geom.setAttribute('color', new Float32BufferAttribute(new Array(n * 3).fill(0.5), 3));
+    geom.computeBoundingBox();
+    scan.parts.push({
+      geom,
+      material: new MeshStandardMaterial(),
+      box: geom.boundingBox!.clone(),
+      baseColor: new Color(1, 1, 1),
+      sampler: null,
+    });
+  };
+  const tilt = (25 * Math.PI) / 180;
+  const box = new BoxGeometry(0.6, 0.6, 0.3, 40, 40, 20);
+  box.rotateX(-tilt); // front face leans back at the top
+  box.translate(0, 1.6, 0.12);
+  add(box);
+  // Face normal and a point on the front face centre.
+  const n = new Vector3(0, Math.sin(tilt), Math.cos(tilt));
+  const faceCentre = new Vector3(0, 1.6, 0.12).addScaledVector(n, 0.15);
+  const holdCentre = faceCentre.clone().add(new Vector3(0.1, 0.05 * Math.cos(tilt), -0.05 * Math.sin(tilt)));
+  const hold = new SphereGeometry(0.045, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  hold.rotateX(Math.PI / 2); // dome along +z, like the holds on the flat wall
+  hold.scale(1, 1, 0.5);
+  hold.rotateX(-tilt); // now along the volume face's normal
+  hold.translate(holdCentre.x, holdCentre.y, holdCentre.z);
+  add(hold);
+  return { scan, holdCentre, n };
+}
+
+describe('detectHold on a volume', () => {
+  it('finds only the small hold, not the volume under it', () => {
+    const { scan, holdCentre, n } = holdOnVolume();
+    const tap = holdCentre.clone().addScaledVector(n, 0.02);
+    const d = detectHold(scan, tap, 'hold', 0.04, n)!;
+    expect(d).not.toBeNull();
+    expect(d.c.distanceTo(holdCentre)).toBeLessThan(0.03);
+    expect(d.r).toBeLessThan(0.09);
+    expect(d.n.dot(n)).toBeGreaterThan(0.9);
+  });
+
+  it('still finds a big hold on a flat wall', () => {
+    const scan = fakeScan([{ x: 0, y: 1.5, r: 0.16 }]);
+    const d = detectHold(scan, new Vector3(0.03, 1.52, 0.07), 'hold', 0.04, towardsViewer)!;
+    expect(d).not.toBeNull();
+    expect(d.r).toBeGreaterThan(0.15);
   });
 });
