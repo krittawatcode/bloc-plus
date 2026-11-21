@@ -107,7 +107,7 @@ export function RouteEditor() {
       rules: [],
       holds: {},
       hands: {},
-      setter: '',
+      setter: me,
       archived: false,
       createdAt: '',
     });
@@ -209,7 +209,7 @@ export function RouteEditor() {
       name: draft.name.trim(),
       description: draft.description.trim(),
       section: draft.section.trim(),
-      setter: draft.type === 'base' ? '' : draft.setter.trim() || 'Staff',
+      setter: draft.setter.trim() || (draft.type === 'base' ? '' : 'Staff'),
     };
     save.mutate([route], {
       onSuccess: () => {
@@ -379,23 +379,21 @@ export function RouteEditor() {
           </div>
         </>
       ) : (
-        <>
-          <TagPicker value={draft.rules} onChange={(rules) => set({ rules })} />
-          <div className={ui.field}>
-            <label className={ui.label} htmlFor="esetter">
-              Set by
-            </label>
-            <input
-              id="esetter"
-              className={ui.input}
-              maxLength={24}
-              value={draft.setter}
-              onChange={(e) => set({ setter: e.target.value })}
-              placeholder="Your name"
-            />
-          </div>
-        </>
+        <TagPicker value={draft.rules} onChange={(rules) => set({ rules })} />
       )}
+      <div className={ui.field}>
+        <label className={ui.label} htmlFor="esetter">
+          Set by
+        </label>
+        <input
+          id="esetter"
+          className={ui.input}
+          maxLength={24}
+          value={draft.setter}
+          onChange={(e) => set({ setter: e.target.value })}
+          placeholder="Your name"
+        />
+      </div>
       <div className={ui.actions}>
         <button
           type="button"

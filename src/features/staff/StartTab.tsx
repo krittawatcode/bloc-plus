@@ -53,6 +53,7 @@ export function StartTab() {
         <h2>
           <span className={ui.tapeInline} style={{ background: base.color ?? '#999' }} />
           {base.name} <GradeBadge grading={d.settings?.grading} id={base.grade} />
+          {base.setter && <span className={`${ui.muted} ${ui.smallText}`}> by {base.setter}</span>}
         </h2>
         <p className={ui.muted}>
           {shown === base

@@ -27,7 +27,9 @@ export function BaseRow({
       <span className={ui.grow}>
         <strong>{route.name}</strong> <GradeBadge grading={grading} id={route.grade} />
         <br />
-        <span className={`${ui.muted} ${ui.smallText}`}>{route.section}</span>
+        <span className={`${ui.muted} ${ui.smallText}`}>
+          {[route.section, route.setter && `by ${route.setter}`].filter(Boolean).join(' · ')}
+        </span>
       </span>
       <span className={ui.stats}>{plural(extras, 'extra')}</span>
     </Link>
