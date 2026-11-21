@@ -254,7 +254,7 @@ export class WallViewer {
 
   private applyHomeUp() {
     const u = this.home?.up;
-    this.setUp(u ? new Vector3(...u).normalize() : WORLD_UP.clone());
+    this.setUp(u ? new Vector3(...u).normalize() : (lyingUp(this.home) ?? WORLD_UP.clone()));
   }
 
   /**
@@ -900,4 +900,25 @@ function halo(hold: Object3D, mat: Material): Object3D {
 /** The real scan drawn behind the route's rings. */
 interface Backdrop {
   group: Group;
+}
+
+/**
+ * A saved view that looks (almost) straight down or up at the wall means the scan lies on its back,
+ * for example after "Stand upright" on a scan that was already upright. Turning around straight up would
+ * then only spin the picture, so use the direction that was "up" on screen when the view was saved.
+ * Looking down, that is the way from the camera towards the target along the floor; looking up, the
+ * opposite. Null for ordinary views (they turn around straight up).
+ */
+export function lyingUp(view: WallView | null | undefined): Vector3 | null {
+  if (!view) return null;
+  const pos = new Vector3(...view.pos);
+  const target = new Vector3(...view.target);
+  const look = pos.clone().sub(target);
+  if (look.lengthSq() < 1e-12) return null;
+  const fromUp = look.angleTo(WORLD_UP);
+  const LIMIT = (25 * Math.PI) / 180;
+  if (fromUp > LIMIT && fromUp < Math.PI - LIMIT) return null;
+  const along = target.clone().sub(pos).setY(0);
+  if (along.lengthSq() < 1e-12) along.set(0, 0, 1);
+  return along.normalize().multiplyScalar(look.y > 0 ? 1 : -1);
 }
