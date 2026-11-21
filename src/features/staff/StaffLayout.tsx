@@ -13,8 +13,8 @@ import s from './Staff.module.css';
 
 const TABS = [
   ['routes', 'Routes'],
-  ['walls', 'Walls'],
   ['holds', 'Holds'],
+  ['walls', 'Walls'],
   ['qr', 'QR codes'],
   ['comments', 'Comments'],
   ['gym', 'Gym'],
