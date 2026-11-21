@@ -15,8 +15,9 @@ export function useClimberData() {
   const showPractice = backend.kind === 'demo' || !!session?.isStaff;
   const bases = (wallId?: string) =>
     core.routes.filter((r) => r.type === 'base' && !r.archived && (!wallId || r.wallId === wallId));
+  // Newest wall first (it is also the one shown in 3D); the demo wall stays last.
   const visibleWalls: Pick<Wall, 'id' | 'name'>[] = [
-    ...core.walls.filter(isCurrentWall),
+    ...core.walls.filter(isCurrentWall).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     ...(showPractice
       ? [
           {
