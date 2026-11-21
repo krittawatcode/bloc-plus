@@ -18,6 +18,7 @@ import {
   PerspectiveCamera,
   LineBasicMaterial,
   LineSegments,
+  Quaternion,
   Raycaster,
   Scene,
   Sprite,
@@ -36,6 +37,8 @@ import { plural } from '@/lib/format';
 import type { LoadedScan } from './scan';
 import { gridFromPoints, type GridWall } from './gridWall';
 import { PRACTICE_BOX, PRACTICE_HOLDS, buildPracticeHold, practiceWallObjects } from './practiceWall';
+
+const WORLD_UP = new Vector3(0, 1, 0);
 
 /** `picked`: the saved hold staff tapped (Holds tab). It has no label and is not in the legend. */
 export type MarkerRole = Role | 'tag' | 'marker' | 'picked';
@@ -224,11 +227,64 @@ export class WallViewer {
     this.controls.update();
   }
 
-  /** The current camera, to save as a wall's start view. */
+  /** The current camera, to save as a wall's start view (with the wall's up direction if tilted). */
   currentView(): WallView {
     const p = this.camera.position;
     const t = this.controls.target;
-    return { pos: [p.x, p.y, p.z], target: [t.x, t.y, t.z] };
+    const u = this.camera.up;
+    const tilted = u.angleTo(WORLD_UP) > 0.001;
+    return {
+      pos: [p.x, p.y, p.z],
+      target: [t.x, t.y, t.z],
+      ...(tilted ? { up: [+u.x.toFixed(5), +u.y.toFixed(5), +u.z.toFixed(5)] } : {}),
+    };
+  }
+
+  /**
+   * Turning spins the wall around `up`. OrbitControls works out its turning axis from camera.up once,
+   * when it is created, so update its cached rotation too.
+   */
+  private setUp(up: Vector3) {
+    if (this.camera.up.distanceToSquared(up) < 1e-10) return;
+    this.camera.up.copy(up);
+    const c = this.controls as unknown as { _quat: Quaternion; _quatInverse: Quaternion };
+    c._quat.setFromUnitVectors(up, WORLD_UP);
+    c._quatInverse.copy(c._quat).invert();
+  }
+
+  private applyHomeUp() {
+    const u = this.home?.up;
+    this.setUp(u ? new Vector3(...u).normalize() : WORLD_UP.clone());
+  }
+
+  /**
+   * Straighten a tilted scan: roll the view by `deg` (positive turns the wall clockwise on screen).
+   * Staff then save it with the default view, so every visitor turns the wall around the fixed up.
+   */
+  tilt(deg: number) {
+    const toCamera = this.camera.position.clone().sub(this.controls.target).normalize();
+    this.setUp(
+      this.camera.up
+        .clone()
+        .applyAxisAngle(toCamera, (deg * Math.PI) / 180)
+        .normalize(),
+    );
+    this.camera.lookAt(this.controls.target);
+    this.controls.update();
+    this.render();
+  }
+
+  /** Back to straight up (+y). */
+  untilt() {
+    this.setUp(WORLD_UP.clone());
+    this.camera.lookAt(this.controls.target);
+    this.controls.update();
+    this.render();
+  }
+
+  /** True when this view turns around a tilted up instead of straight up. */
+  get tilted() {
+    return this.camera.up.angleTo(WORLD_UP) > 0.001;
   }
 
   /** Use a new start view for this wall right away (after staff save or clear it). */
@@ -457,6 +513,7 @@ export class WallViewer {
       this.wallId = spec.wallId;
       this.home = this.source.view(spec.wallId);
       this.homeHere = true;
+      this.applyHomeUp();
       for (const m of spec.scan.meshes) this.scene.add(m);
       this.pickables = spec.scan.meshes.slice();
       this.pickMode = 'scan';
@@ -485,6 +542,7 @@ export class WallViewer {
     this.wallId = wallId;
     this.home = wallId === PRACTICE_WALL_ID ? null : this.source.view(wallId);
     this.homeHere = spec.kind === 'wall';
+    this.applyHomeUp();
     const fg = this.colour('--fg');
     // Dark themes need a stronger wall outline and a rim around route holds to stay readable.
     const outline = parseFloat(this.theme.css('--outline-strength')) || 1;

@@ -59,6 +59,11 @@ export interface Wall {
 export interface WallView {
   pos: Vec3;
   target: Vec3;
+  /**
+   * Which way is up for this wall's scan. Missing means straight up (+y). Photo scans often come in
+   * slightly tilted; turning the wall spins around this direction so it doesn't wobble. Holds don't move.
+   */
+  up?: Vec3;
 }
 
 /** A wall climbers can see now (not replaced by a reset). */
